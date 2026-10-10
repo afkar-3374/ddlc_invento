@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // DDLC AI - Direct access without auth barrier
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Chakra Petch', 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #090B0C;
+    color: #E2E8F0;
+  }
+
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+/* Custom scrollbars for dark engineering interface */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d1114;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #232b31;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333d45;
+}
+
+/* DDLC Hardware Instrument Accents */
+.instrument-panel {
+  background: #111518;
+  border: 1px solid #1E252B;
+}
+
+.instrument-glow {
+  box-shadow: 0 0 15px -3px rgba(0, 255, 102, 0.15), inset 0 0 1px 1px rgba(0, 255, 102, 0.2);
+}
+
+.neon-dot {
+  box-shadow: 0 0 8px #00FF66;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-card {
+    border: 1px solid #ddd !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

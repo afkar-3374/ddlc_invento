@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Application user profile and role",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["admin", "member"] },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Inventory product item",
+      "type": "object",
+      "properties": {
+        "sku": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 256 },
+        "category": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 2048 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 32 },
+        "unitPrice": { "type": "number" },
+        "gstPercent": { "type": "number" },
+        "gstAmount": { "type": "number" },
+        "vendor": { "type": "string", "maxLength": 256 },
+        "purchaseDate": { "type": "string", "maxLength": 64 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "storageLocation": { "type": "string", "maxLength": 128 },
+        "notes": { "type": "string", "maxLength": 2048 },
+        "archived": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["sku", "name", "category", "quantity", "unit", "unitPrice"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Hardware/software project tracking",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "description": { "type": "string", "maxLength": 2048 },
+        "status": { "type": "string", "enum": ["Planning", "Active", "Beta", "Completed", "Archived"] },
+        "startDate": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 2048 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["name", "code", "status"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Historical purchase record entry",
+      "type": "object",
+      "properties": {
+        "purchaseNumber": { "type": "string", "maxLength": 64 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "productNameSnapshot": { "type": "string", "maxLength": 256 },
+        "skuSnapshot": { "type": "string", "maxLength": 64 },
+        "vendorId": { "type": "string", "maxLength": 128 },
+        "vendorNameSnapshot": { "type": "string", "maxLength": 256 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectNameSnapshot": { "type": "string", "maxLength": 128 },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "discount": { "type": "number" },
+        "gstRate": { "type": "number" },
+        "gstAmount": { "type": "number" },
+        "invoiceTotal": { "type": "number" },
+        "invoiceNumber": { "type": "string", "maxLength": 128 },
+        "purchaseDate": { "type": "string", "maxLength": 64 },
+        "paymentStatus": { "type": "string", "enum": ["Paid", "Partially Paid", "Unpaid"] },
+        "notes": { "type": "string", "maxLength": 2048 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["purchaseNumber", "productId", "quantity", "unitPrice", "invoiceTotal", "purchaseDate"]
+    },
+    "Vendor": {
+      "title": "Vendor",
+      "description": "Supplier information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 256 },
+        "contactPerson": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "phone": { "type": "string", "maxLength": 64 },
+        "gstin": { "type": "string", "maxLength": 64 },
+        "address": { "type": "string", "maxLength": 512 },
+        "notes": { "type": "string", "maxLength": 1024 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["name"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product taxonomy category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 32 },
+        "description": { "type": "string", "maxLength": 512 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["name", "code"]
+    },
+    "StockMovement": {
+      "title": "StockMovement",
+      "description": "Stock movement audit ledger",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "maxLength": 128 },
+        "sku": { "type": "string", "maxLength": 64 },
+        "type": { "type": "string", "enum": ["PURCHASE_IN", "PROJECT_ALLOCATION", "ADJUSTMENT", "RETURN"] },
+        "quantity": { "type": "number" },
+        "previousStock": { "type": "number" },
+        "newStock": { "type": "number" },
+        "referenceId": { "type": "string", "maxLength": 128 },
+        "notes": { "type": "string", "maxLength": 1024 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["productId", "type", "quantity"]
+    },
+    "SkuCounter": {
+      "title": "SkuCounter",
+      "description": "Safe counter for prefix-based SKU generations",
+      "type": "object",
+      "properties": {
+        "prefix": { "type": "string", "maxLength": 32 },
+        "currentCount": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["prefix", "currentCount"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System audit trail",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "maxLength": 128 },
+        "entityType": { "type": "string", "maxLength": 64 },
+        "entityId": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 2048 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["action", "entityType", "entityId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles and privileges"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Inventory product items"
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Projects tracking"
+    },
+    "/purchases/{purchaseId}": {
+      "schema": { "$ref": "#/entities/Purchase" },
+      "description": "Purchase ledger entries"
+    },
+    "/vendors/{vendorId}": {
+      "schema": { "$ref": "#/entities/Vendor" },
+      "description": "Supplier directory"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Product taxonomy"
+    },
+    "/stockMovements/{movementId}": {
+      "schema": { "$ref": "#/entities/StockMovement" },
+      "description": "Stock ledger movements"
+    },
+    "/skuCounters/{counterId}": {
+      "schema": { "$ref": "#/entities/SkuCounter" },
+      "description": "SKU generation sequence counters"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Security and business audit logs"
+    }
+  }
+}
