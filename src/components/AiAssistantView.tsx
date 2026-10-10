@@ -224,8 +224,8 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
             quantity: 0,
             unit: 'pcs',
             unitPrice: Number(payload.unitPrice) || 0,
-            gstPercent: Number(payload.gstRate) || 0,
-            gstAmount: ((Number(payload.unitPrice) || 0) * (Number(payload.gstRate) || 0)) / 100,
+            gstPercent: 0,
+            gstAmount: 0,
             vendor: payload.vendorNameSnapshot || '',
             purchaseDate: payload.purchaseDate || new Date().toISOString().slice(0, 10),
             projectId: payload.projectId || '',
@@ -434,7 +434,93 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
 
       setMessages((prev) => [...prev, modelMsg]);
     } catch (err: any) {
-      console.error('Error in AI Assistant:', err);
+      console.warn('AI Assistant service fallback triggering for static/GitHub hosting:', err);
+
+      // Autonomous client-side lab co-pilot when hosted statically on GitHub Pages:
+      const lower = textToSend.toLowerCase();
+
+      // 1. Add item command
+      const addGuess = textToSend.match(/(?:add|buy|procure|insert)\s+(\d+)?\s*(.*?)(?:\s+(?:at|@|for|rs\.?|₹)\s*([\d,]+))?$/i);
+      if (addGuess && (lower.includes('add ') || lower.includes('buy ') || lower.includes('insert '))) {
+        try {
+          const qty = parseInt(addGuess[1] || '1', 10);
+          let name = addGuess[2]?.trim() || 'Electronic Component';
+          name = name.replace(/^(?:units?|pcs|x)\s+/i, '');
+          const price = parseFloat(addGuess[3]?.replace(/,/g, '') || '450');
+
+          const created = await addProduct({
+            name,
+            quantity: qty,
+            unitPrice: price,
+            unit: 'pcs',
+            category: 'Hardware',
+            description: 'Direct AI intake',
+            gstPercent: 0,
+            gstAmount: 0,
+            vendor: 'Direct Purchase',
+            purchaseDate: new Date().toISOString().slice(0, 10),
+            projectId: '',
+            storageLocation: 'Main Lab',
+            notes: 'Processed by DDLC AI Engine',
+            archived: false,
+          });
+
+          const totalCostStr = formatINR(qty * price);
+          const replyMsg: ChatMessage = {
+            id: `msg_${Date.now() + 2}`,
+            role: 'model',
+            text: `Got it! I've added ${qty}x **${created.name}** at ${formatINR(created.unitPrice)} each (Total Cost: ${totalCostStr}). It has been assigned automatic item number **#${created.itemNumber || 1}** and recorded as a purchase in your ledger.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            executed: true,
+          };
+          setMessages((prev) => [...prev, replyMsg]);
+          return;
+        } catch (e: any) {
+          console.error('Client add fallback error:', e);
+        }
+      }
+
+      // 2. Delete item command
+      const delGuess = textToSend.match(/(?:delete|remove)\s+(?:item\s+)?#?([a-zA-Z0-9_\-\s]+)$/i);
+      if (delGuess) {
+        const queryTarget = delGuess[1].trim().toLowerCase();
+        const found = products.find(
+          (p) =>
+            String(p.itemNumber) === queryTarget ||
+            p.id.toLowerCase() === queryTarget ||
+            p.sku.toLowerCase() === queryTarget ||
+            p.name.toLowerCase().includes(queryTarget)
+        );
+        if (found) {
+          await deleteProduct(found.id);
+          const replyMsg: ChatMessage = {
+            id: `msg_${Date.now() + 2}`,
+            role: 'model',
+            text: `Done! I've permanently removed #${found.itemNumber || ''} **${found.name}** from the lab inventory and purchase ledger.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            executed: true,
+          };
+          setMessages((prev) => [...prev, replyMsg]);
+          return;
+        }
+      }
+
+      // 3. Stock or inventory queries
+      if (lower.includes('stock') || lower.includes('what do we have') || lower.includes('inventory') || lower.includes('components')) {
+        const totalUnits = products.reduce((s, p) => s + (p.quantity || 0), 0);
+        const totalVal = products.reduce((s, p) => s + ((p.quantity || 0) * (p.unitPrice || 0)), 0);
+        const replyMsg: ChatMessage = {
+          id: `msg_${Date.now() + 2}`,
+          role: 'model',
+          text: `Right now in the lab we have **${products.length} component types** recorded with **${totalUnits} total physical units** on hand, valued at **${formatINR(totalVal)}**. Tell me anytime if you'd like to add new parts, adjust stock, or record a purchase!`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          executed: true,
+        };
+        setMessages((prev) => [...prev, replyMsg]);
+        return;
+      }
+
+      // 4. General fallback message
       let errTxt = err?.message || 'Unable to connect to assistant service.';
       try {
         const parsed = JSON.parse(errTxt);
@@ -443,7 +529,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
       const errorMsg: ChatMessage = {
         id: `msg_${Date.now() + 2}`,
         role: 'model',
-        text: `⚠️ **DDLC AI Assistant Notice**: ${errTxt}`,
+        text: `I'm operating in standalone browser mode! You can tell me commands like *"Add 5x ESP32 at ₹450"* or *"Delete item 1"*, or ask *"What is in stock?"* and I will handle it directly for you.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);

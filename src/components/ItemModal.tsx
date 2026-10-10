@@ -298,7 +298,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             </div>
           </div>
 
-          {/* Row 3: Quantity, Unit, Unit Price, GST Rate */}
+          {/* Row 3: Quantity, Unit, Unit Price, Total Cost */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#0E1216] p-3 rounded-xl border border-[#1C252C]">
             <div>
               <label className="text-[10px] font-mono text-gray-400 block mb-1">

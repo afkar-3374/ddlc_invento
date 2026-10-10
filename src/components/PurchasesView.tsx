@@ -115,7 +115,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({
             </span>
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Immutable procurement ledger with verified GST calculations and atomic stock increments.
+            Immutable procurement ledger with real-time Firestore tracking and atomic stock increments.
           </p>
         </div>
 
@@ -248,7 +248,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({
             <tbody className="divide-y divide-[#182026]">
               {filteredPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-gray-400 font-mono text-xs">
+                  <td colSpan={8} className="py-12 text-center text-gray-400 font-mono text-xs">
                     No purchase records match current filter criteria.
                   </td>
                 </tr>
