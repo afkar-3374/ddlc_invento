@@ -26,7 +26,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const [quantity, setQuantity] = useState<number>(1);
   const [unit, setUnit] = useState('pcs');
   const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [gstPercent, setGstPercent] = useState<number>(18);
+  const [gstPercent, setGstPercent] = useState<number>(0);
   const [vendor, setVendor] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10));
   const [projectId, setProjectId] = useState('');
@@ -46,7 +46,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setQuantity(productToEdit.quantity || 0);
       setUnit(productToEdit.unit || 'pcs');
       setUnitPrice(productToEdit.unitPrice || 0);
-      setGstPercent(productToEdit.gstPercent || 18);
+      setGstPercent(0);
       setVendor(productToEdit.vendor || '');
       setPurchaseDate(productToEdit.purchaseDate || new Date().toISOString().slice(0, 10));
       setProjectId(productToEdit.projectId || '');
@@ -59,7 +59,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setQuantity(1);
       setUnit('pcs');
       setUnitPrice(0);
-      setGstPercent(18);
+      setGstPercent(0);
       setVendor(vendors[0]?.name || '');
       setPurchaseDate(new Date().toISOString().slice(0, 10));
       setProjectId(projects[0]?.id || '');
@@ -113,8 +113,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     setNewCategoryName('');
   };
 
-  const gstAmount = ((Number(unitPrice) || 0) * (Number(gstPercent) || 0)) / 100;
-  const totalPriceWithGst = ((Number(unitPrice) || 0) + gstAmount) * (Number(quantity) || 0);
+  const gstAmount = 0;
+  const totalPrice = (Number(unitPrice) || 0) * (Number(quantity) || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,8 +135,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         quantity: Number(quantity) || 0,
         unit,
         unitPrice: Number(unitPrice) || 0,
-        gstPercent: Number(gstPercent) || 0,
-        gstAmount,
+        gstPercent: 0,
+        gstAmount: 0,
         vendor,
         purchaseDate,
         projectId,
@@ -351,29 +351,21 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
             <div>
               <label className="text-[10px] font-mono text-gray-400 block mb-1">
-                GST RATE (%)
+                TOTAL COST (₹)
               </label>
-              <select
-                value={gstPercent}
-                onChange={(e) => setGstPercent(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-amber-400 font-mono focus:outline-none focus:border-[#00FF66]"
-              >
-                <option value={0}>0%</option>
-                <option value={5}>5%</option>
-                <option value={12}>12%</option>
-                <option value={18}>18% (Standard)</option>
-                <option value={28}>28%</option>
-              </select>
+              <div className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-[#00FF66] font-mono font-bold text-xs flex items-center">
+                {formatINR(totalPrice)}
+              </div>
             </div>
           </div>
 
           {/* Computed Line Total Badge */}
           <div className="flex items-center justify-between text-xs font-mono px-3 py-2 rounded-lg bg-[#141A1F] border border-[#1E2730]">
             <span className="text-gray-400">
-              Taxable: {formatINR(unitPrice * quantity)} + GST: {formatINR(gstAmount * quantity)}
+              Calculation: {quantity} {unit} × {formatINR(unitPrice)}
             </span>
             <span className="text-white font-bold">
-              Total with GST: <span className="text-[#00FF66]">{formatINR(totalPriceWithGst)}</span>
+              Total Cost: <span className="text-[#00FF66]">{formatINR(totalPrice)}</span>
             </span>
           </div>
 

@@ -16,8 +16,8 @@ export interface Product {
   quantity: number;
   unit: string;
   unitPrice: number;
-  gstPercent: number;
-  gstAmount: number;
+  gstPercent?: number;
+  gstAmount?: number;
   totalCost?: number;
   vendor: string;
   purchaseDate: string;
@@ -54,8 +54,8 @@ export interface Purchase {
   quantity: number;
   unitPrice: number;
   discount: number;
-  gstRate: number;
-  gstAmount: number;
+  gstRate?: number;
+  gstAmount?: number;
   invoiceTotal: number;
   invoiceNumber: string;
   purchaseDate: string;
@@ -114,6 +114,7 @@ export interface ProposedAction {
     | 'BATCH_ADD_PRODUCTS'
     | 'UPDATE_PRODUCT'
     | 'ARCHIVE_PRODUCT'
+    | 'DELETE_PRODUCT'
     | 'ADD_PURCHASE'
     | 'ASSIGN_PROJECT'
     | 'CREATE_PROJECT'

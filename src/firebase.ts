@@ -10,14 +10,15 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
+export type OperationType = 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
+export const OperationType = {
+  CREATE: 'create' as const,
+  UPDATE: 'update' as const,
+  DELETE: 'delete' as const,
+  LIST: 'list' as const,
+  GET: 'get' as const,
+  WRITE: 'write' as const,
+};
 
 export interface FirestoreErrorInfo {
   error: string;

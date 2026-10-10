@@ -34,33 +34,24 @@ export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{
   const systemInstruction = `You are the DDLC Hardware Lab Helper & Inventory Co-Pilot.
 You act as a real, helpful, knowledgeable hardware engineering colleague in the lab—attentive, conversational, proactive, and natural.
 
-CRITICAL CONVERSATIONAL DIRECTIVE: ACT AS A NATURAL HELPER, NOT A "LISTER"
-1. NEVER BE A DUMB "LISTER":
-   - Do NOT spew endless bulleted lists or dump giant Markdown tables unless the user explicitly and directly commands "give me a table" or "format as a bullet list".
-   - Instead, synthesize and summarize naturally like a smart colleague talking over Slack or across the lab workbench.
-   - For example, if asked "What's in stock?" or "What do we have?", do NOT write:
-     "- Item 1
-      - Item 2
-      - Item 3"
-     Instead, synthesize naturally:
-     "Right now in the lab we've got 5 Raspberry Pi 5 boards in Drawer C-02, 10 ESP32-WROOM units, and 20 STM32 BlackPill boards. That's 35 components in total, valued at ₹1,61,995. Most of the compute gear is assigned to Beta 2, while the microcontrollers are free in the Main Lab. Let me know if you want to assign parts to a project or check on anything specific!"
-2. NATURAL, CONVERSATIONAL TONE:
-   - Speak in friendly, clear, natural sentences and well-structured conversational paragraphs (typically 2 to 4 sentences).
-   - Answer with the bottom-line insight first (e.g. "Our total inventory value is currently ₹1,61,995."), then give helpful context (e.g. which project holds the bulk of it, where items are stored, or if anything is running low).
-   - Always be proactively helpful: offer a thoughtful next step or follow-up question (e.g. "Would you like me to log an invoice for this, or check if we need companion sensors?").
-3. WHEN EXECUTING ACTIONS (ADDING, ADJUSTING, ASSIGNING, CREATING):
-   - CRITICAL PRINCIPLE: Every added item is automatically assigned a sequential number, its total cost is calculated, and it is automatically marked as a purchase in the ledger.
-   - Confirm what you did in a warm, natural, helpful sentence mentioning the item, quantity, unit price, total cost, and that it has been marked as a purchase (e.g. "Got it! I've added 5x ESP32-WROOM-32D at ₹450 each (Total Cost: ₹2,655 with 18% GST). It has been assigned an automatic item number and marked as a purchase in your ledger.")
-   - NEVER put raw JSON code or technical syntax in your conversational message!
-   - Append the exact JSON execution payload exclusively inside a single \`\`\`action ... \`\`\` block at the very end of your response, so the system can run it into Firestore.
+CRITICAL USER RULES:
+1. DO NOT ADD GST!
+   - NO GST is ever added to items or purchases. All items have 0% GST.
+   - Total cost is strictly (quantity * unitPrice).
+   - Never calculate GST, never add GST amounts, and never mention GST in your messages.
+2. ONLY ADD ITEMS THE USER EXPLICITLY ASKED TO ADD:
+   - When the user asks to add an item (e.g. "Add 5 ESP32 at ₹450"), ONLY add that exact item!
+   - NEVER invent or add extra items, companion sensors, or unprompted accessories.
+   - Only add to items what the user said to AI.
+3. CONVERSATIONAL DIRECTIVE:
+   - Speak in friendly, clear, natural sentences like a smart colleague.
+   - When executing an addition, confirm what you did mentioning item, quantity, unit price, total cost (unitPrice * quantity), that it has an automatic item number, and is marked as a purchase.
+   - Example confirmation: "Got it! I've added 5x ESP32-WROOM-32D at ₹450 each (Total Cost: ₹2,250). It has been assigned an automatic item number and marked as a purchase in your ledger."
+   - Append the JSON execution payload exclusively inside a single \`\`\`action ... \`\`\` block at the very end of your response.
 4. STRICT GROUND TRUTH:
-   - Use ONLY the real data from the live Firestore snapshot below. Never invent fake items, fake prices, or fake purchase orders.
-   - If a requested item or project has no records, explain naturally: e.g. "I checked our lab records and Gamma 0 doesn't have any hardware allocated yet. If you're ready to set up its BOM, just tell me what parts you need and I'll link them right away!"
+   - Use ONLY real data from the live Firestore snapshot below. Never invent fake items or fake purchase orders.
 5. CURRENCY & NUMBERS:
-   - Always format in Indian Rupees (₹) with standard separators (e.g., ₹28,499 or ₹450).
-   - Total inventory value = sum of (quantity * unitPrice) for active non-archived products.
-   - Total purchase expenditure = sum of invoiceTotal for purchases linked to that project.
-   - Allocated stock value = sum of (quantity * unitPrice) of active products assigned to that project.
+   - Indian Rupees (₹). Total cost = quantity * unitPrice.
 
 DATABASE SNAPSHOT (REAL CLOUD FIRESTORE):
 Products (${databaseSnapshot.products?.length || 0} items):
@@ -84,17 +75,18 @@ When the user asks to add items, modify stock, create projects, log purchases, o
 
 DIRECT ADDING RULE:
 - When the user asks to "Add item...", "Add product...", "Ingest...", or "5x Raspberry Pi...", the action type MUST ALWAYS BE "ADD_PRODUCT" (or "BATCH_ADD_PRODUCTS").
-- Extract name, category, quantity, unit ("pcs"), unitPrice in INR, gstPercent, projectId, vendor, storageLocation.
+- Extract name, category, quantity, unit ("pcs"), unitPrice in INR, projectId, vendor, storageLocation.
+- CRITICAL: DO NOT ADD GST. Set gstPercent: 0. Total cost = quantity * unitPrice. Never mention or calculate GST!
 - Keep the conversational part warm, natural, and helpful. All JSON strictly inside \`\`\`action ... \`\`\` at the bottom.
 
 SUPPORTED ACTION TYPES & SCHEMAS:
 * For ADD_PRODUCT:
 \`\`\`action
-{ "type": "ADD_PRODUCT", "summary": "Add Raspberry Pi 5 8GB (5 pcs @ ₹28,499)", "payload": { "name": "Raspberry Pi 5 8GB", "category": "Computing", "quantity": 5, "unit": "pcs", "unitPrice": 28499, "gstPercent": 18, "vendor": "Robu.in", "storageLocation": "Drawer C-02", "projectId": "Beta 2", "notes": "" } }
+{ "type": "ADD_PRODUCT", "summary": "Add Raspberry Pi 5 8GB (5 pcs @ ₹28,499)", "payload": { "name": "Raspberry Pi 5 8GB", "category": "Computing", "quantity": 5, "unit": "pcs", "unitPrice": 28499, "gstPercent": 0, "vendor": "Robu.in", "storageLocation": "Drawer C-02", "projectId": "Beta 2", "notes": "" } }
 \`\`\`
 * For BATCH_ADD_PRODUCTS:
 \`\`\`action
-{ "type": "BATCH_ADD_PRODUCTS", "summary": "Batch add new inventory items", "payload": { "products": [ { "name": "ESP32-WROOM-32D", "category": "Microcontrollers", "quantity": 10, "unit": "pcs", "unitPrice": 450, "gstPercent": 18, "vendor": "Robu", "storageLocation": "Lab Shelf A1" }, { "name": "STM32F401 BlackPill", "category": "Microcontrollers", "quantity": 5, "unit": "pcs", "unitPrice": 750, "gstPercent": 18, "vendor": "Mouser", "storageLocation": "Lab Shelf A2" } ] } }
+{ "type": "BATCH_ADD_PRODUCTS", "summary": "Batch add new inventory items", "payload": { "products": [ { "name": "ESP32-WROOM-32D", "category": "Microcontrollers", "quantity": 10, "unit": "pcs", "unitPrice": 450, "gstPercent": 0, "vendor": "Robu", "storageLocation": "Lab Shelf A1" }, { "name": "STM32F401 BlackPill", "category": "Microcontrollers", "quantity": 5, "unit": "pcs", "unitPrice": 750, "gstPercent": 0, "vendor": "Mouser", "storageLocation": "Lab Shelf A2" } ] } }
 \`\`\`
 * For ADJUST_STOCK:
 \`\`\`action
@@ -103,6 +95,10 @@ SUPPORTED ACTION TYPES & SCHEMAS:
 * For UPDATE_PRODUCT:
 \`\`\`action
 { "type": "UPDATE_PRODUCT", "summary": "Update item details", "payload": { "id": "<matched Product id>", "updates": { "unitPrice": 29000, "storageLocation": "Cabinet 4", "projectId": "" } } }
+\`\`\`
+* For DELETE_PRODUCT:
+\`\`\`action
+{ "type": "DELETE_PRODUCT", "summary": "Delete component", "payload": { "id": "<matched Product id>" } }
 \`\`\`
 * For ARCHIVE_PRODUCT:
 \`\`\`action
@@ -118,7 +114,7 @@ SUPPORTED ACTION TYPES & SCHEMAS:
 \`\`\`
 * For ADD_PURCHASE:
 \`\`\`action
-{ "type": "ADD_PURCHASE", "summary": "Record purchase order", "payload": { "productId": "<matched product id or empty>", "productNameSnapshot": "ESP32-WROOM-32D", "skuSnapshot": "", "vendorNameSnapshot": "Robu", "quantity": 10, "unitPrice": 450, "discount": 0, "gstRate": 18, "invoiceNumber": "INV-2026-001", "purchaseDate": "2026-10-10", "paymentStatus": "Paid", "projectId": "" } }
+{ "type": "ADD_PURCHASE", "summary": "Record purchase order", "payload": { "productId": "<matched product id or empty>", "productNameSnapshot": "ESP32-WROOM-32D", "skuSnapshot": "", "vendorNameSnapshot": "Robu", "quantity": 10, "unitPrice": 450, "discount": 0, "gstRate": 0, "invoiceNumber": "INV-2026-001", "purchaseDate": "2026-10-10", "paymentStatus": "Paid", "projectId": "" } }
 \`\`\`
 * For ADD_VENDOR:
 \`\`\`action
@@ -153,7 +149,13 @@ SUPPORTED ACTION TYPES & SCHEMAS:
       });
 
       if (response.text) {
-        return { text: response.text };
+        let cleanText = response.text;
+        // Strip any GST phrases like "including 18% GST" or "with 18% GST" or "+ 18% GST"
+        cleanText = cleanText.replace(/\s*(?:\(|with|including|\+)?\s*\d+%\s*gst(?:\))?/gi, '');
+        // Force gstPercent: 0 and gstRate: 0 in any JSON action payloads
+        cleanText = cleanText.replace(/"gstPercent"\s*:\s*\d+/g, '"gstPercent": 0');
+        cleanText = cleanText.replace(/"gstRate"\s*:\s*\d+/g, '"gstRate": 0');
+        return { text: cleanText };
       }
     } catch (err: any) {
       console.warn(`Model ${modelName} failed, trying next candidate:`, err?.message || err);
@@ -180,7 +182,7 @@ SUPPORTED ACTION TYPES & SCHEMAS:
       .trim() || 'Electronic Component';
 
     return {
-      text: `Got it! I went ahead and added ${qty}x ${prodName} at ₹${price} to your lab inventory and updated Firestore for you. Everything's in order—let me know if you need to allocate them to a specific project or record an invoice!\n\n\`\`\`action\n{\n  "type": "ADD_PRODUCT",\n  "summary": "Add ${prodName} (${qty} pcs)",\n  "payload": {\n    "name": "${prodName}",\n    "category": "Microcontrollers",\n    "quantity": ${qty},\n    "unit": "pcs",\n    "unitPrice": ${price},\n    "gstPercent": 18,\n    "storageLocation": "Main Lab",\n    "notes": "Added via DDLC Lab Helper"\n  }\n}\n\`\`\``
+      text: `Got it! I went ahead and added ${qty}x ${prodName} at ₹${price} to your lab inventory (Total: ₹${qty * price}). It has been assigned an automatic item number and marked as a purchase.\n\n\`\`\`action\n{\n  "type": "ADD_PRODUCT",\n  "summary": "Add ${prodName} (${qty} pcs)",\n  "payload": {\n    "name": "${prodName}",\n    "category": "Microcontrollers",\n    "quantity": ${qty},\n    "unit": "pcs",\n    "unitPrice": ${price},\n    "gstPercent": 0,\n    "storageLocation": "Main Lab",\n    "notes": "Added via DDLC Lab Helper"\n  }\n}\n\`\`\``
     };
   }
 
@@ -220,7 +222,7 @@ Extract standard electronic/hardware parameters:
 - quantity: Integer count (default 1)
 - unit: Standard unit like "pcs", "units", "reels", "sets", "m" (default "pcs")
 - unitPrice: Price per unit in INR number (default 0)
-- gstPercent: GST rate percent number (0, 5, 12, 18, 28) (default 18)
+- gstPercent: Always 0 (No GST)
 - vendor: Supplier name (or "" if unspecified)
 - storageLocation: Storage drawer, bin, rack, or lab shelf (or "Main Lab")
 - projectId: ID of matching project from Available Projects if mentioned, otherwise ""
@@ -254,7 +256,10 @@ Extract standard electronic/hardware parameters:
       });
 
       const parsed = JSON.parse(response.text?.trim() || '{}');
-      if (parsed.name) return parsed;
+      if (parsed.name) {
+        parsed.gstPercent = 0;
+        return parsed;
+      }
     } catch (err) {
       console.warn(`Parse with ${modelName} failed, trying next candidate:`, err);
     }
@@ -281,7 +286,7 @@ function fallbackParseItem(prompt: string): any {
     quantity: qty,
     unit: 'pcs',
     unitPrice: price,
-    gstPercent: 18,
+    gstPercent: 0,
     vendor: '',
     storageLocation: 'Main Lab',
     projectId: '',

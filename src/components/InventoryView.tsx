@@ -4,6 +4,8 @@ import {
   Search,
   Plus,
   Edit2,
+  Trash2,
+  RotateCcw,
   Archive,
   ArchiveRestore,
   ExternalLink,
@@ -42,6 +44,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     activeProjectsCount,
     archiveProduct,
     adjustProductStock,
+    deleteProduct,
+    clearAllData,
   } = useInventory();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,6 +131,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
         <div className="flex items-center gap-2">
           <button
+            onClick={onOpenAddItem}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold bg-[#00FF66] text-black hover:bg-[#1aff75] transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(0,255,102,0.25)]"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Item</span>
+          </button>
+
+          <button
             onClick={() => setShowArchived(!showArchived)}
             className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
               showArchived
@@ -137,6 +149,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {showArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
             <span>{showArchived ? 'Archived' : 'Active Items'}</span>
           </button>
+
+          {products.length > 0 && (
+            <button
+              onClick={() => {
+                clearAllData();
+              }}
+              className="px-3 py-1.5 rounded-xl text-xs font-mono text-gray-400 border border-[#222B33] bg-[#12161A] hover:text-red-400 hover:border-red-900/40 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Clear all records to start completely clean"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear All</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -276,8 +301,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <tbody className="divide-y divide-[#182026]">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-gray-400 font-mono text-xs">
-                    No matching inventory items found for current filters.
+                  <td colSpan={9} className="py-16 text-center text-gray-400 font-mono text-xs">
+                    <div className="max-w-md mx-auto space-y-2">
+                      <div className="w-10 h-10 rounded-xl bg-[#121E16] text-[#00FF66] border border-[#00FF66]/30 flex items-center justify-center mx-auto">
+                        <Boxes className="w-5 h-5" />
+                      </div>
+                      <p className="text-white font-medium text-sm">
+                        {products.length === 0 ? 'No items in database yet' : 'No items match your filters'}
+                      </p>
+                      <p className="text-gray-400 text-xs">
+                        {products.length === 0
+                          ? "Type what you want to add in the AI prompt above (e.g. 'Add 5x ESP32 at ₹450' or 'Add 2 Raspberry Pi at ₹8000') and AI will handle everything automatically."
+                          : 'Try clearing your search query or changing category and project filters.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -285,8 +322,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   const isOutOfStock = p.quantity <= 0;
                   const isLowStock = p.quantity > 0 && p.quantity <= 5;
                   const itemAutoNum = p.itemNumber || (idx + 1);
-                  const gstAmt = p.gstAmount || ((p.unitPrice * p.quantity * (p.gstPercent || 0)) / 100);
-                  const computedTotalCost = p.totalCost || ((Number(p.quantity) || 0) * (Number(p.unitPrice) || 0) + gstAmt);
+                  const computedTotalCost = (Number(p.quantity) || 0) * (Number(p.unitPrice) || 0);
                   const projectName = p.projectId ? projectMap[p.projectId] || 'Project' : 'Unassigned';
 
                   return (
@@ -378,17 +414,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       </td>
 
-                      {/* Unit Price */}
+                      {/* Unit Price (No GST) */}
                       <td className="py-3.5 px-4 text-right font-mono text-white whitespace-nowrap">
                         {formatINR(p.unitPrice)}
-                        {p.gstPercent > 0 && (
-                          <span className="block text-[9px] text-gray-400">
-                            +{p.gstPercent}% GST
-                          </span>
-                        )}
                       </td>
 
-                      {/* Total Cost (Added & Highlighted) */}
+                      {/* Total Cost (Strictly Qty * Unit Price) */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-[#00FF66] whitespace-nowrap text-xs">
                         {formatINR(computedTotalCost)}
                       </td>
@@ -424,6 +455,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             title={p.archived ? 'Restore item' : 'Archive item'}
                           >
                             {p.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteProduct(p.id);
+                            }}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer"
+                            title="Delete item"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
 
                           <button

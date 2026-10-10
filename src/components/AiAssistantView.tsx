@@ -46,6 +46,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
     editProduct,
     archiveProduct,
     adjustProductStock,
+    deleteProduct,
     addPurchase,
     addProject,
     addVendor,
@@ -124,8 +125,6 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
       }
 
       const unitPrice = Number(payload.unitPrice) || 0;
-      const gstPercent = Number(payload.gstPercent) || 0;
-      const gstAmt = (unitPrice * gstPercent) / 100;
 
       const created = await addProduct({
         name: payload.name || 'Electronic Component',
@@ -134,8 +133,8 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
         quantity: Number(payload.quantity) || 1,
         unit: payload.unit || 'pcs',
         unitPrice: unitPrice,
-        gstPercent: gstPercent,
-        gstAmount: gstAmt,
+        gstPercent: 0,
+        gstAmount: 0,
         vendor: payload.vendor || '',
         purchaseDate: payload.purchaseDate || new Date().toISOString().slice(0, 10),
         projectId: resolvedProjectId,
@@ -153,8 +152,6 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
       const addedNames: string[] = [];
       for (const item of list) {
         const unitPrice = Number(item.unitPrice) || 0;
-        const gstPercent = Number(item.gstPercent) || 0;
-        const gstAmt = (unitPrice * gstPercent) / 100;
         const created = await addProduct({
           name: item.name || 'Component',
           category: item.category || 'General',
@@ -162,8 +159,8 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
           quantity: Number(item.quantity) || 1,
           unit: item.unit || 'pcs',
           unitPrice: unitPrice,
-          gstPercent: gstPercent,
-          gstAmount: gstAmt,
+          gstPercent: 0,
+          gstAmount: 0,
           vendor: item.vendor || '',
           purchaseDate: item.purchaseDate || new Date().toISOString().slice(0, 10),
           projectId: item.projectId || '',
@@ -185,6 +182,17 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
       if (!targetId) throw new Error('Product not found in database to update.');
       await editProduct(targetId, payload.updates);
       return `Product updated directly in Firestore.`;
+    }
+
+    if (type === 'DELETE_PRODUCT') {
+      let targetId = payload.id;
+      if (!targetId && (payload.sku || payload.itemNumber)) {
+        const match = products.find((p) => p.sku === payload.sku || String(p.itemNumber) === String(payload.itemNumber));
+        if (match) targetId = match.id;
+      }
+      if (!targetId) throw new Error('Product not found in database to delete.');
+      await deleteProduct(targetId);
+      return `Deleted item from database.`;
     }
 
     if (type === 'ARCHIVE_PRODUCT') {

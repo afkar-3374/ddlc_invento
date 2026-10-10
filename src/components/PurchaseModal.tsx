@@ -22,7 +22,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
-  const [gstRate, setGstRate] = useState<number>(18);
+  const [gstRate, setGstRate] = useState<number>(0);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Partially Paid' | 'Unpaid'>('Paid');
@@ -40,14 +40,14 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
         setUnitPrice(prod.unitPrice || 0);
         setVendorName(prod.vendor || vendors[0]?.name || '');
         setProjectId(prod.projectId || '');
-        setGstRate(prod.gstPercent || 18);
+        setGstRate(0);
       }
     } else if (products.length > 0) {
       setProductId(products[0].id);
       setUnitPrice(products[0].unitPrice || 0);
       setVendorName(products[0].vendor || vendors[0]?.name || '');
       setProjectId(products[0].projectId || '');
-      setGstRate(products[0].gstPercent || 18);
+      setGstRate(0);
     }
     setInvoiceNumber(`INV-${Math.floor(100000 + Math.random() * 900000)}`);
     setError(null);
@@ -62,14 +62,14 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
       setUnitPrice(prod.unitPrice);
       if (prod.vendor) setVendorName(prod.vendor);
       if (prod.projectId) setProjectId(prod.projectId);
-      if (prod.gstPercent !== undefined) setGstRate(prod.gstPercent);
+      setGstRate(0);
     }
   };
 
-  // Calculations
+  // Calculations (No GST)
   const subtotal = Math.max(0, (Number(quantity) || 0) * (Number(unitPrice) || 0) - (Number(discount) || 0));
-  const gstAmount = (subtotal * (Number(gstRate) || 0)) / 100;
-  const invoiceTotal = subtotal + gstAmount;
+  const gstAmount = 0;
+  const invoiceTotal = subtotal;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,19 +261,11 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
             <div>
               <label className="text-[10px] font-mono text-gray-400 block mb-1">
-                GST RATE (%)
+                TOTAL AMOUNT (₹)
               </label>
-              <select
-                value={gstRate}
-                onChange={(e) => setGstRate(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-amber-400 font-mono focus:outline-none focus:border-[#00FF66]"
-              >
-                <option value={0}>0%</option>
-                <option value={5}>5%</option>
-                <option value={12}>12%</option>
-                <option value={18}>18%</option>
-                <option value={28}>28%</option>
-              </select>
+              <div className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-[#00FF66] font-mono font-bold text-xs flex items-center">
+                {formatINR(invoiceTotal)}
+              </div>
             </div>
           </div>
 
@@ -324,15 +316,17 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
           {/* Real-time Calculation Breakdown Card */}
           <div className="p-3.5 rounded-xl bg-[#131A1F] border border-[#1E2931] font-mono space-y-1.5">
             <div className="flex justify-between text-gray-400">
-              <span>Subtotal ({quantity} units):</span>
-              <span className="text-white">{formatINR(subtotal)}</span>
+              <span>Quantity:</span>
+              <span className="text-white">{quantity} units @ {formatINR(unitPrice)}</span>
             </div>
-            <div className="flex justify-between text-amber-400">
-              <span>GST Amount ({gstRate}%):</span>
-              <span>{formatINR(gstAmount)}</span>
-            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-gray-400">
+                <span>Discount:</span>
+                <span className="text-white">-{formatINR(discount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm font-bold text-white pt-1.5 border-t border-gray-700">
-              <span>Final Invoice Total:</span>
+              <span>Final Total Cost:</span>
               <span className="text-[#00FF66]">{formatINR(invoiceTotal)}</span>
             </div>
           </div>

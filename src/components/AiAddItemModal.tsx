@@ -70,8 +70,6 @@ export const AiAddItemModal: React.FC<AiAddItemModalProps> = ({ isOpen, onClose 
       setSaving(true);
       setError(null);
 
-      const gstAmt = ((parsedData.unitPrice || 0) * (parsedData.gstPercent || 0)) / 100;
-
       await addProduct({
         sku: skuPreview,
         name: parsedData.name,
@@ -80,8 +78,8 @@ export const AiAddItemModal: React.FC<AiAddItemModalProps> = ({ isOpen, onClose 
         quantity: Number(parsedData.quantity) || 1,
         unit: parsedData.unit || 'pcs',
         unitPrice: Number(parsedData.unitPrice) || 0,
-        gstPercent: Number(parsedData.gstPercent) || 0,
-        gstAmount: gstAmt,
+        gstPercent: 0,
+        gstAmount: 0,
         vendor: parsedData.vendor || '',
         purchaseDate: new Date().toISOString().slice(0, 10),
         projectId: parsedData.projectId || '',
@@ -105,7 +103,7 @@ export const AiAddItemModal: React.FC<AiAddItemModalProps> = ({ isOpen, onClose 
   };
 
   const examplePrompts = [
-    'Add 5x Raspberry Pi 5 (8GB) at ₹28,499 with 18% GST from Robu for Beta 2 stored in Locker C-01',
+    'Add 5x Raspberry Pi 5 (8GB) at ₹28,499 from Robu for Beta 2 stored in Locker C-01',
     'Received 20 units STM32F401 BlackPill at ₹749 in Microcontrollers category',
     'Add 8 pieces BME688 AI Environmental Gas Sensor at 2150 INR from Mouser',
     'Add 100x 10k Ohm 1% SMD resistors at 1.5 INR each in Drawer Bin D-12',
@@ -228,8 +226,10 @@ export const AiAddItemModal: React.FC<AiAddItemModalProps> = ({ isOpen, onClose 
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-gray-500 block">GST RATE</span>
-                <span className="text-amber-400">{parsedData.gstPercent || 0}%</span>
+                <span className="text-[10px] text-gray-500 block">TOTAL COST</span>
+                <span className="text-[#00FF66] font-bold">
+                  {formatINR((parsedData.quantity || 1) * (parsedData.unitPrice || 0))}
+                </span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-500 block">SUPPLIER</span>

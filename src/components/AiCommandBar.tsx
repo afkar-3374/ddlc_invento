@@ -38,6 +38,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
     editProduct,
     archiveProduct,
     adjustProductStock,
+    deleteProduct,
     addPurchase,
     addProject,
     addVendor,
@@ -70,7 +71,6 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
     setLoading(true);
     setStatusMessage(null);
     try {
-      const gstAmt = (tpl.price * 18) / 100;
       const created = await addProduct({
         name: tpl.name,
         category: tpl.category,
@@ -78,8 +78,8 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
         quantity: tpl.qty,
         unit: 'pcs',
         unitPrice: tpl.price,
-        gstPercent: 18,
-        gstAmount: gstAmt,
+        gstPercent: 0,
+        gstAmount: 0,
         vendor: 'Robu / Mouser',
         purchaseDate: new Date().toISOString().slice(0, 10),
         projectId: projects[0]?.id || '',
@@ -116,7 +116,6 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
     try {
       const qty = parseInt(directQty, 10) || 1;
       const price = parseFloat(directPrice) || 0;
-      const gstAmt = (price * 18) / 100;
 
       const created = await addProduct({
         name: directName.trim(),
@@ -125,8 +124,8 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
         quantity: qty,
         unit: 'pcs',
         unitPrice: price,
-        gstPercent: 18,
-        gstAmount: gstAmt,
+        gstPercent: 0,
+        gstAmount: 0,
         vendor: '',
         purchaseDate: new Date().toISOString().slice(0, 10),
         projectId: directProjectId,
@@ -188,8 +187,6 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
       }
 
       const unitPrice = Number(payload.unitPrice) || 0;
-      const gstPercent = Number(payload.gstPercent) || 0;
-      const gstAmt = (unitPrice * gstPercent) / 100;
       const created = await addProduct({
         name: payload.name || 'Component',
         category: payload.category || 'General',
@@ -197,8 +194,8 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
         quantity: Number(payload.quantity) || 1,
         unit: payload.unit || 'pcs',
         unitPrice: unitPrice,
-        gstPercent: gstPercent,
-        gstAmount: gstAmt,
+        gstPercent: 0,
+        gstAmount: 0,
         vendor: payload.vendor || '',
         purchaseDate: payload.purchaseDate || new Date().toISOString().slice(0, 10),
         projectId: resolvedProjectId,
@@ -213,7 +210,6 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
       const list = payload.products || [];
       const addedNames: string[] = [];
       for (const item of list) {
-        const gstAmt = ((Number(item.unitPrice) || 0) * (Number(item.gstPercent) || 0)) / 100;
         const created = await addProduct({
           name: item.name,
           category: item.category || 'General',
@@ -221,8 +217,8 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
           quantity: Number(item.quantity) || 1,
           unit: item.unit || 'pcs',
           unitPrice: Number(item.unitPrice) || 0,
-          gstPercent: Number(item.gstPercent) || 0,
-          gstAmount: gstAmt,
+          gstPercent: 0,
+          gstAmount: 0,
           vendor: item.vendor || '',
           purchaseDate: item.purchaseDate || new Date().toISOString().slice(0, 10),
           projectId: item.projectId || '',
@@ -251,6 +247,11 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
     if (type === 'UPDATE_PRODUCT') {
       await editProduct(payload.id, payload.updates);
       return `Product details updated in Firestore.`;
+    }
+
+    if (type === 'DELETE_PRODUCT') {
+      await deleteProduct(payload.id);
+      return `Deleted item from database.`;
     }
 
     if (type === 'ARCHIVE_PRODUCT') {
@@ -314,7 +315,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
             projectId: projName,
             category: 'Microcontrollers',
             unit: 'pcs',
-            gstPercent: 18,
+            gstPercent: 0,
           },
         };
         const summary = await executeActionDirectly(action);
@@ -325,6 +326,53 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
         setInput('');
         setLoading(false);
         return;
+      }
+
+      // Fast-path delete command: "Delete item 2" or "Delete item #1" or "Remove ESP32"
+      const deleteMatch = prompt.match(/^(?:delete|remove)\s+(?:item\s+)?#?([a-zA-Z0-9_\-\s]+)$/i);
+      if (deleteMatch) {
+        const queryTarget = deleteMatch[1].trim().toLowerCase();
+        const found = products.find(
+          (p) =>
+            String(p.itemNumber) === queryTarget ||
+            p.id.toLowerCase() === queryTarget ||
+            p.sku.toLowerCase() === queryTarget ||
+            p.name.toLowerCase().includes(queryTarget)
+        );
+        if (found) {
+          await deleteProduct(found.id);
+          setStatusMessage({
+            type: 'success',
+            text: `🗑️ Deleted item #${found.itemNumber || ''} ${found.name}`,
+          });
+          setInput('');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fast-path adjust stock: "Set stock of item 1 to 20" or "Change Pi stock to 15"
+      const stockMatch = prompt.match(/^(?:set|change|adjust)\s+(?:stock\s+(?:of\s+)?)?(?:item\s+)?#?([a-zA-Z0-9_\-\s]+?)\s+(?:stock\s+)?(?:to|=|count\s+is)\s*(\d+)$/i);
+      if (stockMatch) {
+        const queryTarget = stockMatch[1].trim().toLowerCase();
+        const newCount = parseInt(stockMatch[2], 10);
+        const found = products.find(
+          (p) =>
+            String(p.itemNumber) === queryTarget ||
+            p.id.toLowerCase() === queryTarget ||
+            p.sku.toLowerCase() === queryTarget ||
+            p.name.toLowerCase().includes(queryTarget)
+        );
+        if (found) {
+          await adjustProductStock(found.id, newCount, 'AI Command');
+          setStatusMessage({
+            type: 'success',
+            text: `📦 Updated #${found.itemNumber || ''} ${found.name} stock to ${newCount} units`,
+          });
+          setInput('');
+          setLoading(false);
+          return;
+        }
       }
 
       // Build snapshot for backend grounding
@@ -448,7 +496,44 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
         }
       }
     } catch (err: any) {
-      console.error('AI Command error:', err);
+      console.warn('AI Assistant network fallback triggering for command:', prompt, err);
+
+      // Smart client-side parsing fallback so app works 100% offline or when opened directly:
+      const addGuess = prompt.match(/(?:add|buy|procure|insert)\s+(\d+)?\s*(.*?)(?:\s+(?:at|@|for|rs\.?|₹)\s*([\d,]+))?$/i);
+      if (addGuess) {
+        try {
+          const qty = parseInt(addGuess[1] || '1', 10);
+          let name = addGuess[2]?.trim() || 'Component';
+          name = name.replace(/^(?:units?|pcs|x)\s+/i, '');
+          const price = parseFloat(addGuess[3]?.replace(/,/g, '') || '450');
+          const created = await addProduct({
+            name,
+            quantity: qty,
+            unitPrice: price,
+            unit: 'pcs',
+            category: 'Hardware',
+            description: 'Direct AI intake',
+            gstPercent: 0,
+            gstAmount: 0,
+            vendor: 'Direct Purchase',
+            purchaseDate: new Date().toISOString().slice(0, 10),
+            projectId: '',
+            storageLocation: 'Main Lab',
+            notes: 'Processed by DDLC AI Engine',
+            archived: false,
+          });
+          setStatusMessage({
+            type: 'success',
+            text: `⚡ Added #${created.itemNumber || ''} ${created.name} (${created.quantity} pcs @ ${formatINR(created.unitPrice)}) • Total Cost: ${formatINR(created.totalCost)} (Marked as Purchase)`,
+          });
+          setInput('');
+          setLoading(false);
+          return;
+        } catch (innerE) {
+          console.error('Fallback add error:', innerE);
+        }
+      }
+
       let errTxt = err?.message || 'Failed to execute command.';
       try {
         const parsed = JSON.parse(errTxt);

@@ -145,9 +145,7 @@ export async function createProduct(
 
   const quantity = Number(productData.quantity) || 1;
   const unitPrice = Number(productData.unitPrice) || 0;
-  const gstPercent = Number(productData.gstPercent) || 0;
-  const gstAmount = Number(productData.gstAmount) || (unitPrice * quantity * gstPercent) / 100;
-  const totalCost = (unitPrice * quantity) + gstAmount;
+  const totalCost = unitPrice * quantity; // Pure total cost, NO GST!
 
   const product: Product = {
     ...productData,
@@ -156,8 +154,8 @@ export async function createProduct(
     sku,
     quantity,
     unitPrice,
-    gstPercent,
-    gstAmount,
+    gstPercent: 0,
+    gstAmount: 0,
     totalCost,
     archived: productData.archived ?? false,
     createdAt: now,
@@ -185,8 +183,8 @@ export async function createProduct(
       quantity: quantity,
       unitPrice: unitPrice,
       discount: 0,
-      gstRate: gstPercent,
-      gstAmount: gstAmount,
+      gstRate: 0,
+      gstAmount: 0,
       invoiceTotal: totalCost,
       invoiceNumber: `INV-${String(itemNumber).padStart(4, '0')}`,
       purchaseDate: product.purchaseDate || now.slice(0, 10),
@@ -458,6 +456,18 @@ export async function createCategory(catData: Omit<Category, 'id' | 'createdAt'>
     return cat;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `categories/${id}`);
+  }
+}
+
+/**
+ * Delete a product permanently
+ */
+export async function deleteProduct(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, 'products', id));
+    await logAuditEvent('DELETE_PRODUCT', 'Product', id, `Deleted product ${id}`);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
   }
 }
 

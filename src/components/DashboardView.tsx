@@ -185,8 +185,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {formatINR(totalPurchasesValue)}
           </div>
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#182026] text-[11px] font-mono text-gray-400">
-            <span>GST RECORDED:</span>
-            <span className="text-amber-400 font-semibold">{formatINR(totalGstRecorded)}</span>
+            <span>PURCHASE ORDERS:</span>
+            <span className="text-[#00FF66] font-semibold">{purchases.length} Logged</span>
           </div>
         </div>
       </div>

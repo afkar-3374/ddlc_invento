@@ -113,7 +113,7 @@ export const ReportsView: React.FC = () => {
       ]);
       downloadCSV(`DDLC_Inventory_${timestamp}`, headers, rows);
     } else {
-      const headers = ['PO Number', 'Invoice Number', 'Date', 'Product', 'SKU', 'Supplier', 'Project', 'Quantity', 'Unit Price', 'GST Rate %', 'GST Amount', 'Invoice Total', 'Payment Status'];
+      const headers = ['PO Number', 'Invoice Number', 'Date', 'Product', 'SKU', 'Supplier', 'Project', 'Quantity', 'Unit Price', 'Total Cost', 'Payment Status'];
       const rows = filteredPurchases.map((po) => [
         po.purchaseNumber,
         po.invoiceNumber,
@@ -124,8 +124,6 @@ export const ReportsView: React.FC = () => {
         po.projectNameSnapshot,
         po.quantity,
         po.unitPrice,
-        po.gstRate,
-        po.gstAmount,
         po.invoiceTotal,
         po.paymentStatus,
       ]);
@@ -374,8 +372,7 @@ export const ReportsView: React.FC = () => {
                   <th className="py-2.5 px-3">Supplier</th>
                   <th className="py-2.5 px-3 text-center">Qty</th>
                   <th className="py-2.5 px-3 text-right">Unit Price</th>
-                  <th className="py-2.5 px-3 text-right">GST (Rate)</th>
-                  <th className="py-2.5 px-3 text-right">Invoice Total</th>
+                  <th className="py-2.5 px-3 text-right">Total Cost</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#182026]">
@@ -390,9 +387,6 @@ export const ReportsView: React.FC = () => {
                     <td className="py-2 px-3 text-gray-300">{po.vendorNameSnapshot}</td>
                     <td className="py-2 px-3 text-center font-mono font-bold">{po.quantity}</td>
                     <td className="py-2 px-3 text-right font-mono">{formatINR(po.unitPrice)}</td>
-                    <td className="py-2 px-3 text-right font-mono text-amber-400">
-                      {formatINR(po.gstAmount)} ({po.gstRate}%)
-                    </td>
                     <td className="py-2 px-3 text-right font-mono font-bold text-[#00FF66]">
                       {formatINR(po.invoiceTotal)}
                     </td>
@@ -408,7 +402,7 @@ export const ReportsView: React.FC = () => {
           <div className="text-xs font-mono text-gray-400">
             <div>DDLC AI CERTIFIED STATEMENT • VERIFIED LEDGER</div>
             <div className="text-[10px] text-gray-500 mt-0.5">
-              Input Tax Credit (ITC) subject to statutory vendor filing reconciliation.
+              Verified procurement records and inventory ledger.
             </div>
           </div>
 
@@ -419,20 +413,10 @@ export const ReportsView: React.FC = () => {
                 <span className="text-[#00FF66]">{formatINR(totalStockValue)}</span>
               </div>
             ) : (
-              <>
-                <div className="flex justify-between items-center text-gray-400">
-                  <span>TAXABLE VALUE:</span>
-                  <span className="text-white">{formatINR(totalPurchasesAmount - totalPurchasesGst)}</span>
-                </div>
-                <div className="flex justify-between items-center text-amber-400">
-                  <span>RECORDED GST:</span>
-                  <span>{formatINR(totalPurchasesGst)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm font-bold text-white pt-1 border-t border-gray-700">
-                  <span>GRAND TOTAL:</span>
-                  <span className="text-[#00FF66]">{formatINR(totalPurchasesAmount)}</span>
-                </div>
-              </>
+              <div className="flex justify-between items-center text-sm font-bold text-white pt-1">
+                <span>TOTAL PURCHASE COST:</span>
+                <span className="text-[#00FF66]">{formatINR(totalPurchasesAmount)}</span>
+              </div>
             )}
           </div>
         </div>

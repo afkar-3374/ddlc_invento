@@ -106,9 +106,9 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
           </div>
 
           <div>
-            <span className="text-[10px] text-gray-400 block">GST RATE</span>
-            <span className="text-base font-bold text-amber-400">
-              {product.gstPercent}% ({formatINR(product.gstAmount)})
+            <span className="text-[10px] text-gray-400 block">ITEM NUMBER</span>
+            <span className="text-base font-bold text-[#00FF66]">
+              #{product.itemNumber || 1}
             </span>
           </div>
 

@@ -130,10 +130,10 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({
 
       {/* Omnipresent AI Command Engine for Purchases */}
       <AiCommandBar
-        placeholder="Tell DDLC AI: Record purchase of 10 sensors from Robu at ₹450 with 18% GST..."
+        placeholder="Tell DDLC AI: Add item, record purchase, or inspect purchase ledger..."
         samplePrompts={[
-          'Record purchase of 10 sensors from Robu at ₹450 with 18% GST',
-          'Record purchase of 5 Raspberry Pi 5 from Mouser for Beta 2',
+          'Add 5x ESP32-WROOM-32D at ₹450',
+          'Record purchase of 5 Raspberry Pi 5 for Beta 2',
           'Log invoice INV-904 from Robu for ₹4,500',
         ]}
         onOpenFullAssistant={onNavigateToAssistant}
@@ -143,28 +143,28 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl bg-[#101418] border border-[#1C242C]">
           <span className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">
-            Total Billed Invoices
+            Total Purchase Cost
           </span>
-          <span className="text-xl font-bold font-mono text-white mt-1 block">
+          <span className="text-xl font-bold font-mono text-[#00FF66] mt-1 block">
             {formatINR(totalPurchasesValue)}
           </span>
         </div>
 
         <div className="p-4 rounded-xl bg-[#101418] border border-[#1C242C]">
           <span className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">
-            Recorded GST Input Tax
+            Total Units Procured
           </span>
-          <span className="text-xl font-bold font-mono text-amber-400 mt-1 block">
-            {formatINR(totalGstRecorded)}
+          <span className="text-xl font-bold font-mono text-white mt-1 block">
+            {purchases.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0)} units
           </span>
         </div>
 
         <div className="p-4 rounded-xl bg-[#101418] border border-[#1C242C]">
           <span className="text-[11px] font-mono text-gray-400 uppercase tracking-wider block">
-            Total Invoices Logged
+            Purchase Orders Logged
           </span>
-          <span className="text-xl font-bold font-mono text-[#00FF66] mt-1 block">
-            {purchases.length} Purchase Orders
+          <span className="text-xl font-bold font-mono text-emerald-400 mt-1 block">
+            {purchases.length} Records
           </span>
         </div>
       </div>
@@ -241,8 +241,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({
                 <th className="py-3 px-4">Project</th>
                 <th className="py-3 px-4 text-center">Qty</th>
                 <th className="py-3 px-4 text-right">Unit Price</th>
-                <th className="py-3 px-4 text-right">GST</th>
-                <th className="py-3 px-4 text-right">Invoice Total</th>
+                <th className="py-3 px-4 text-right">Total Cost</th>
                 <th className="py-3 px-4 text-center">Status</th>
               </tr>
             </thead>
@@ -304,13 +303,7 @@ export const PurchasesView: React.FC<PurchasesViewProps> = ({
                       )}
                     </td>
 
-                    {/* GST */}
-                    <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap text-amber-400">
-                      {formatINR(po.gstAmount)}
-                      <span className="block text-[9px] text-gray-400">({po.gstRate}%)</span>
-                    </td>
-
-                    {/* Invoice Total */}
+                    {/* Total Cost */}
                     <td className="py-3.5 px-4 text-right font-mono font-bold text-sm text-[#00FF66] whitespace-nowrap">
                       {formatINR(po.invoiceTotal)}
                     </td>
