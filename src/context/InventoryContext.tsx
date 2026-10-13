@@ -268,7 +268,18 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // 1. Automatic sequential number for item
     const highestExistingNum = products.reduce((max, p) => Math.max(max, p.itemNumber || 0), 0);
     const itemNumber = productData.itemNumber || (highestExistingNum + 1);
-    const sku = productData.sku || `ITEM-${String(itemNumber).padStart(3, '0')}`;
+
+    // CRITICAL USER MANDATE: All SKUs must start with DDLC-
+    let sku = '';
+    const rawSku = productData.sku?.trim();
+    if (rawSku) {
+      sku = rawSku.toUpperCase().startsWith('DDLC-')
+        ? rawSku.toUpperCase()
+        : `DDLC-${rawSku.toUpperCase()}`;
+    } else {
+      sku = `DDLC-${String(itemNumber).padStart(4, '0')}`;
+    }
+    const barcode = productData.barcode || sku;
 
     const quantity = Number(productData.quantity) || 1;
     const unitPrice = Number(productData.unitPrice) || 0;
@@ -279,6 +290,7 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       id,
       itemNumber,
       sku,
+      barcode,
       quantity,
       unitPrice,
       gstPercent: 0,

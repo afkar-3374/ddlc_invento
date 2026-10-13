@@ -28,6 +28,8 @@ import {
   Printer,
   Edit2,
   Sliders,
+  FolderPlus,
+  X,
 } from 'lucide-react';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { useInventory } from '../context/InventoryContext';
@@ -70,6 +72,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     totalPurchasesValue,
     addProduct,
     editProduct,
+    addProject,
   } = useInventory();
 
   // Active dashboard view mode / tab
@@ -236,20 +239,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   // ==========================================
-  // 2. AI CO-PILOT & LABEL GENERATION STATE
+  // 2. AI CO-PILOT & HARDWARE ACTIONS STATE
   // ==========================================
   const [aiInput, setAiInput] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiAction, setAiAction] = useState<ProposedAction | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [aiActionExecuting, setAiActionExecuting] = useState(false);
+  const [aiActionResult, setAiActionResult] = useState<string | null>(null);
 
-  const sampleAiLabelPrompts = [
-    'Generate barcode labels for all items',
-    'Generate two labels for every item in Beta 2',
-    'Create PDF labels for all Raspberry Pi boards',
-    'Generate barcode labels from SKU DDLC-CMP-00010 to DDLC-CMP-00025',
+  const sampleAiPrompts = [
+    'Give detailed inventory analysis',
+    'Add 5x ESP32-WROOM-32D at ₹450 from Robu',
+    'Create new project Rover MK-2',
+    'Give barcodes for all inventory items',
   ];
+
+  const handleConfirmAddProduct = async (payload: any) => {
+    try {
+      setAiActionExecuting(true);
+      const created = await addProduct(payload);
+      setAiActionResult(`✨ Added "${created.name}" to Inventory! Assigned SKU: ${created.sku} (Saved to Cloud Firestore)`);
+      setAiAction(null);
+    } catch (err: any) {
+      alert(`Failed to save product: ${err?.message || err}`);
+    } finally {
+      setAiActionExecuting(false);
+    }
+  };
+
+  const handleConfirmCreateProject = async (payload: any) => {
+    try {
+      setAiActionExecuting(true);
+      const created = await addProject(payload);
+      setAiActionResult(`✨ Created Project "${created.name}" (${created.code}) in Cloud Firestore!`);
+      setAiAction(null);
+    } catch (err: any) {
+      alert(`Failed to create project: ${err?.message || err}`);
+    } finally {
+      setAiActionExecuting(false);
+    }
+  };
 
   const handleAiSend = async (customPrompt?: string) => {
     const textToSend = customPrompt || aiInput;
@@ -258,6 +289,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     setAiLoading(true);
     setAiResponse(null);
     setAiAction(null);
+    setAiActionResult(null);
     setAiInput('');
 
     try {
@@ -746,14 +778,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
           </div>
 
-          {/* Quick AI Label Generation Action Prompts */}
+          {/* Quick AI Action Prompts */}
           <div className="space-y-1.5">
             <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[#00FF66]" />
-              Quick AI Label Generation:
+              Quick Co-Pilot Actions:
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {sampleAiLabelPrompts.map((p, idx) => (
+              {sampleAiPrompts.map((p, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleAiSend(p)}
@@ -766,12 +798,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
+          {/* AI Result Banner (e.g. after adding product or creating project) */}
+          {aiActionResult && (
+            <div className="p-3 rounded-xl bg-[#0D1812] border border-[#00FF66]/50 flex items-center justify-between text-xs font-mono text-[#00FF66] shadow-[0_0_12px_rgba(0,255,102,0.15)]">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-[#00FF66]" />
+                <span>{aiActionResult}</span>
+              </div>
+              <button
+                onClick={() => setAiActionResult(null)}
+                className="text-gray-400 hover:text-white p-1"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* AI Response Card */}
           <div className="flex-1 min-h-[160px] bg-[#0C0F12] border border-[#182026] rounded-xl p-3.5 space-y-3 font-mono text-xs overflow-y-auto">
             {aiLoading ? (
               <div className="flex items-center gap-2 text-[#00FF66] py-8 justify-center">
                 <div className="w-4 h-4 border-2 border-[#00FF66] border-t-transparent rounded-full animate-spin" />
-                <span>Processing label request with Gemini...</span>
+                <span>Consulting Gemini Lab Assistant...</span>
               </div>
             ) : aiResponse ? (
               <div className="space-y-3">
@@ -779,7 +828,115 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {aiResponse}
                 </div>
 
-                {/* AI Label Action Card with real Download PDF button */}
+                {/* 1. ADD_PRODUCT ACTION CARD */}
+                {aiAction && aiAction.type === 'ADD_PRODUCT' && (
+                  <div className="p-3.5 rounded-xl bg-[#0D1812] border border-[#00FF66]/40 space-y-2.5 shadow-[0_0_12px_rgba(0,255,102,0.1)]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs font-bold text-[#00FF66]">
+                        <Plus className="w-4 h-4" />
+                        <span>{aiAction.summary || 'Proposed Product Addition'}</span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40 font-bold">
+                        SKU: {aiAction.payload.sku || `DDLC-${String(products.length + 1).padStart(4, '0')}`}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono bg-[#0B0E11] p-2.5 rounded-lg border border-[#19222A]">
+                      <div>
+                        <span className="text-gray-500 block text-[9px]">ITEM NAME</span>
+                        <span className="text-white font-medium truncate block">{aiAction.payload.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[9px]">QUANTITY</span>
+                        <span className="text-white font-medium block">{aiAction.payload.quantity || 1} {aiAction.payload.unit || 'pcs'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[9px]">UNIT PRICE</span>
+                        <span className="text-white font-medium block">{formatINR(aiAction.payload.unitPrice)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[9px]">TOTAL COST (0% GST)</span>
+                        <span className="text-[#00FF66] font-bold block">{formatINR((Number(aiAction.payload.quantity) || 1) * (Number(aiAction.payload.unitPrice) || 0))}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => handleConfirmAddProduct(aiAction.payload)}
+                        disabled={aiActionExecuting}
+                        className="px-3.5 py-1.5 rounded-lg bg-[#00FF66] hover:bg-[#1aff75] text-black font-bold text-xs font-mono flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,255,102,0.2)] transition-all cursor-pointer"
+                      >
+                        {aiActionExecuting ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Confirm & Save to Firestore</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setAiAction(null)}
+                        className="px-3 py-1.5 rounded-lg bg-[#141A1F] hover:bg-[#1E2730] border border-[#232F3A] text-gray-400 hover:text-white text-xs font-mono transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. CREATE_PROJECT ACTION CARD */}
+                {aiAction && aiAction.type === 'CREATE_PROJECT' && (
+                  <div className="p-3.5 rounded-xl bg-[#0F161E] border border-cyan-500/40 space-y-2.5 shadow-[0_0_12px_rgba(6,182,212,0.1)]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs font-bold text-cyan-400">
+                        <FolderPlus className="w-4 h-4" />
+                        <span>{aiAction.summary || 'Proposed Project Creation'}</span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+                        CODE: {aiAction.payload.code || 'PROJ'}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] font-mono text-gray-300 bg-[#0B0E11] p-2.5 rounded-lg border border-[#19222A]">
+                      <div>Project Name: <strong className="text-white">{aiAction.payload.name}</strong></div>
+                      <div className="text-gray-400 text-[10px] mt-0.5">{aiAction.payload.description || 'Hardware prototype tracking'}</div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => handleConfirmCreateProject(aiAction.payload)}
+                        disabled={aiActionExecuting}
+                        className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs font-mono flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.25)] transition-all cursor-pointer"
+                      >
+                        {aiActionExecuting ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                            <span>Creating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Confirm & Create Project</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setAiAction(null)}
+                        className="px-3 py-1.5 rounded-lg bg-[#141A1F] hover:bg-[#1E2730] border border-[#232F3A] text-gray-400 hover:text-white text-xs font-mono transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. GENERATE_LABELS ACTION CARD */}
                 {aiAction && aiAction.type === 'GENERATE_LABELS' && (
                   <div className="p-3.5 rounded-xl bg-[#0D1812] border border-[#00FF66]/40 space-y-2.5 shadow-[0_0_12px_rgba(0,255,102,0.1)]">
                     <div className="flex items-center justify-between">
@@ -793,7 +950,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     <div className="text-[11px] text-gray-400">
-                      Print-ready vector barcodes with clean SKU text beneath each Code 128 symbol.
+                      Print-ready Code 128 barcode stickers (all formatted with clean DDLC- SKUs).
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -816,13 +973,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                   </div>
                 )}
+
+                {/* 4. SHOW_PRODUCT_DETAILS ACTION CARD */}
+                {aiAction && aiAction.type === 'SHOW_PRODUCT_DETAILS' && (
+                  <div className="p-3.5 rounded-xl bg-[#141A1F] border border-[#2B3844] space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-white">
+                      <span>{aiAction.summary || 'Component Lookup'}</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00FF66]/15 text-[#00FF66]">
+                        {aiAction.payload.sku}
+                      </span>
+                    </div>
+                    {products.find(p => p.id === aiAction.payload.productId || p.sku === aiAction.payload.sku) && (
+                      <button
+                        onClick={() => {
+                          const p = products.find(prod => prod.id === aiAction.payload.productId || prod.sku === aiAction.payload.sku);
+                          if (p) onViewItemDetails(p);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-[#00FF66] text-black font-bold font-mono text-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        <span>Inspect Full Item Specs</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-6 text-center text-gray-500 space-y-1">
                 <BotMessageSquare className="w-6 h-6 text-gray-600 mb-1" />
-                <span className="text-gray-400 text-xs">AI Co-Pilot Standby</span>
-                <span className="text-[11px]">
-                  Ask to generate labels by SKU range, project (e.g. Beta 2), or part keyword.
+                <span className="text-gray-300 text-xs font-medium">DDLC AI Co-Pilot Ready</span>
+                <span className="text-[11px] text-gray-500 max-w-sm">
+                  Ask for inventory analysis, add new parts (SKUs start with DDLC-), create projects, or generate barcode stickers.
                 </span>
               </div>
             )}
@@ -840,7 +1021,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               type="text"
               value={aiInput}
               onChange={(e) => setAiInput(e.target.value)}
-              placeholder="e.g., Generate barcode labels from SKU DDLC-CMP-00010 to DDLC-CMP-00025..."
+              placeholder="e.g., Give analysis, Add 5 ESP32 at ₹450, Create project Rover MK-2, or Give barcodes..."
               className="flex-1 px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232F3A] text-xs font-mono text-white placeholder-gray-500 focus:outline-none focus:border-[#00FF66]"
             />
             <button

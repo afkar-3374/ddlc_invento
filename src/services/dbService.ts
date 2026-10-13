@@ -142,7 +142,11 @@ export async function createProduct(
 
   // 1. Automatic item number
   const itemNumber = productData.itemNumber || (await generateNextItemNumber());
-  const sku = productData.sku || `ITEM-${String(itemNumber).padStart(3, '0')}`;
+  const rawSku = productData.sku?.trim();
+  const sku = rawSku
+    ? (rawSku.toUpperCase().startsWith('DDLC-') ? rawSku.toUpperCase() : `DDLC-${rawSku.toUpperCase()}`)
+    : `DDLC-${String(itemNumber).padStart(4, '0')}`;
+  const barcode = productData.barcode || sku;
 
   const quantity = Number(productData.quantity) || 1;
   const unitPrice = Number(productData.unitPrice) || 0;
@@ -153,6 +157,7 @@ export async function createProduct(
     id,
     itemNumber,
     sku,
+    barcode,
     quantity,
     unitPrice,
     gstPercent: 0,
