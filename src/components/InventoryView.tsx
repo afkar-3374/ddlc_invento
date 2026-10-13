@@ -11,6 +11,10 @@ import {
   ExternalLink,
   ChevronRight,
   MapPin,
+  Download,
+  Check,
+  ScanLine,
+  Tag,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { Product } from '../types';
@@ -24,6 +28,8 @@ interface InventoryViewProps {
   onAdjustStock: (product: Product) => void;
   onViewItemDetails: (product: Product) => void;
   onNavigateToAssistant?: (prompt: string) => void;
+  onOpenLabels?: (product?: Product) => void;
+  onOpenScanner?: () => void;
 }
 
 export const InventoryView: React.FC<InventoryViewProps> = ({
@@ -33,6 +39,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   onAdjustStock,
   onViewItemDetails,
   onNavigateToAssistant,
+  onOpenLabels,
+  onOpenScanner,
 }) => {
   const {
     products,
@@ -53,6 +61,96 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [selectedProject, setSelectedProject] = useState<string>('ALL');
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [showArchived, setShowArchived] = useState(false);
+  const [exportedRecently, setExportedRecently] = useState(false);
+
+  // Export inventory to CSV
+  const handleExportCSV = () => {
+    const itemsToExport = filteredProducts.length > 0 ? filteredProducts : products;
+    if (itemsToExport.length === 0) return;
+
+    const headers = [
+      'Item #',
+      'SKU / Code',
+      'Item Name',
+      'Category',
+      'Quantity',
+      'Unit',
+      'Unit Price (INR)',
+      'Total Cost (INR)',
+      'Project',
+      'Storage Location',
+      'Vendor',
+      'Purchase Date',
+      'Status',
+      'Notes',
+      'Created Date',
+    ];
+
+    const escapeCsv = (val: unknown): string => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/\r\n/g, ' ').replace(/[\r\n]/g, ' ');
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
+    const rows = itemsToExport.map((p, idx) => {
+      const itemNum = p.itemNumber ?? idx + 1;
+      const sku = p.sku || '';
+      const name = p.name || '';
+      const category = p.category || 'General';
+      const quantity = p.quantity ?? 0;
+      const unit = p.unit || 'pcs';
+      const unitPrice = Number(p.unitPrice || 0).toFixed(2);
+      const totalCost = Number(p.totalCost ?? ((p.quantity || 0) * (p.unitPrice || 0))).toFixed(2);
+      const project = p.projectId ? (projectMap[p.projectId] || p.projectId) : 'Unassigned';
+      const location = p.storageLocation || '';
+      const vendor = p.vendor || '';
+      const purchaseDate = p.purchaseDate || '';
+      const status = p.archived
+        ? 'Archived'
+        : p.quantity <= 0
+        ? 'Out of Stock'
+        : p.quantity <= 5
+        ? 'Low Stock'
+        : 'In Stock';
+      const notes = p.notes || '';
+      const createdDate = p.createdAt ? p.createdAt.slice(0, 10) : '';
+
+      return [
+        escapeCsv(itemNum),
+        escapeCsv(sku),
+        escapeCsv(name),
+        escapeCsv(category),
+        escapeCsv(quantity),
+        escapeCsv(unit),
+        escapeCsv(unitPrice),
+        escapeCsv(totalCost),
+        escapeCsv(project),
+        escapeCsv(location),
+        escapeCsv(vendor),
+        escapeCsv(purchaseDate),
+        escapeCsv(status),
+        escapeCsv(notes),
+        escapeCsv(createdDate),
+      ].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.setAttribute('download', `ddlc_inventory_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setExportedRecently(true);
+    setTimeout(() => {
+      setExportedRecently(false);
+    }, 2500);
+  };
 
   // Map project ID to name
   const projectMap = useMemo(() => {
@@ -129,13 +227,64 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={onOpenAddItem}
             className="px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold bg-[#00FF66] text-black hover:bg-[#1aff75] transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(0,255,102,0.25)]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Item</span>
+          </button>
+
+          {onOpenScanner && (
+            <button
+              onClick={onOpenScanner}
+              className="px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-[#00FF66]/40 bg-[#12161A] text-[#00FF66] hover:bg-[#151D22] transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Open Barcode Scanner"
+            >
+              <ScanLine className="w-3.5 h-3.5" />
+              <span>Scan</span>
+            </button>
+          )}
+
+          {onOpenLabels && (
+            <button
+              onClick={() => onOpenLabels()}
+              className="px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-[#222B33] bg-[#12161A] text-gray-300 hover:text-white hover:border-[#00FF66]/40 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Generate printable barcode labels"
+            >
+              <Tag className="w-3.5 h-3.5 text-[#00FF66]" />
+              <span>Labels</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleExportCSV}
+            disabled={products.length === 0}
+            title={
+              products.length === 0
+                ? 'No items to export'
+                : `Export ${filteredProducts.length} items as CSV`
+            }
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
+              products.length === 0
+                ? 'opacity-40 cursor-not-allowed bg-[#12161A] text-gray-500 border-[#222B33]'
+                : exportedRecently
+                ? 'bg-emerald-950/50 text-[#00FF66] border-[#00FF66]/50 shadow-[0_0_10px_rgba(0,255,102,0.2)]'
+                : 'bg-[#12161A] text-gray-300 border-[#222B33] hover:text-[#00FF66] hover:border-[#00FF66]/40 hover:bg-[#151C22]'
+            }`}
+          >
+            {exportedRecently ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-[#00FF66]" />
+                <span className="text-[#00FF66]">Exported!</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5" />
+                <span>Export CSV</span>
+              </>
+            )}
           </button>
 
           <button
@@ -446,6 +595,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          {onOpenLabels && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenLabels(p);
+                              }}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-[#00FF66] hover:bg-[#15201A] transition-colors cursor-pointer"
+                              title="Print barcode label for this SKU"
+                            >
+                              <Tag className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

@@ -10,6 +10,9 @@ export interface Product {
   id: string;
   itemNumber?: number;
   sku: string;
+  barcode?: string;
+  brand?: string;
+  model?: string;
   name: string;
   category: string;
   description: string;
@@ -119,7 +122,9 @@ export interface ProposedAction {
     | 'ASSIGN_PROJECT'
     | 'CREATE_PROJECT'
     | 'ADJUST_STOCK'
-    | 'ADD_VENDOR';
+    | 'ADD_VENDOR'
+    | 'GENERATE_LABELS'
+    | 'SHOW_PRODUCT_DETAILS';
   summary: string;
   payload: any;
 }

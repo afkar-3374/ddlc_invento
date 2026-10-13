@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { Sparkles, X, Check, AlertCircle, ArrowRight, Layers, BotMessageSquare } from 'lucide-react';
+import {
+  Sparkles,
+  X,
+  Check,
+  AlertCircle,
+  ArrowRight,
+  Layers,
+  BotMessageSquare,
+  Edit2,
+  Trash2,
+  RotateCcw,
+} from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { generateUniqueSKU, formatINR } from '../services/dbService';
 
@@ -17,6 +28,7 @@ export const AiAddItemModal: React.FC<AiAddItemModalProps> = ({ isOpen, onClose 
 
   // Extracted item state
   const [parsedData, setParsedData] = useState<any | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [skuPreview, setSkuPreview] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -194,52 +206,168 @@ export const AiAddItemModal: React.FC<AiAddItemModalProps> = ({ isOpen, onClose 
         {/* Parsed Extraction Result Preview */}
         {parsedData && (
           <div className="mt-5 pt-4 border-t border-[#1C252C] space-y-3">
-            <div className="flex items-center justify-between text-xs font-mono text-[#00FF66]">
-              <span className="flex items-center gap-1.5 font-bold">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+              <span className="flex items-center gap-1.5 font-bold text-[#00FF66]">
                 <Check className="w-3.5 h-3.5" />
-                EXTRACTED PARAMETERS READY FOR FIRESTORE
+                {isEditing ? 'EDITING EXTRACTED ITEM' : 'EXTRACTED ITEM READY FOR FIRESTORE'}
               </span>
-              <span className="text-white font-bold bg-[#141A1F] px-2 py-0.5 rounded border border-[#232D35]">
-                {skuPreview}
-              </span>
+
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold bg-[#141A1F] px-2 py-0.5 rounded border border-[#232D35]">
+                  {skuPreview}
+                </span>
+
+                {/* Edit Option */}
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1 transition-colors cursor-pointer ${
+                    isEditing
+                      ? 'bg-amber-500 text-black font-bold'
+                      : 'bg-[#182028] text-amber-400 hover:text-white border border-amber-500/30'
+                  }`}
+                  title="Edit item parameters before saving"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>{isEditing ? 'Done Editing' : 'Edit Item'}</span>
+                </button>
+
+                {/* Clear Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setParsedData(null);
+                    setAiPrompt('');
+                    setIsEditing(false);
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-mono text-red-400 hover:text-white bg-red-950/30 hover:bg-red-950/60 border border-red-500/30 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Clear extracted item"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Clear Item</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-[#0E1216] p-3 rounded-xl border border-[#1E2730] text-xs font-mono">
-              <div className="col-span-2 sm:col-span-3">
-                <span className="text-[10px] text-gray-500 block">PRODUCT NAME</span>
-                <span className="text-white font-bold text-sm">{parsedData.name}</span>
+            {isEditing ? (
+              /* Editable inputs when user clicked Edit */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-[#0E1216] p-3.5 rounded-xl border border-amber-500/30 text-xs font-mono">
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] text-gray-400 block mb-1">PRODUCT NAME</label>
+                  <input
+                    type="text"
+                    value={parsedData.name || ''}
+                    onChange={(e) => setParsedData({ ...parsedData, name: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">CATEGORY</label>
+                  <input
+                    type="text"
+                    value={parsedData.category || ''}
+                    onChange={(e) => setParsedData({ ...parsedData, category: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">QUANTITY & UNIT</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={parsedData.quantity || 1}
+                      onChange={(e) =>
+                        setParsedData({ ...parsedData, quantity: Number(e.target.value) })
+                      }
+                      className="w-2/3 px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                    />
+                    <input
+                      type="text"
+                      value={parsedData.unit || 'pcs'}
+                      onChange={(e) => setParsedData({ ...parsedData, unit: e.target.value })}
+                      className="w-1/3 px-2 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">UNIT PRICE (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={parsedData.unitPrice || 0}
+                    onChange={(e) =>
+                      setParsedData({ ...parsedData, unitPrice: Number(e.target.value) })
+                    }
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">SUPPLIER</label>
+                  <input
+                    type="text"
+                    value={parsedData.vendor || ''}
+                    onChange={(e) => setParsedData({ ...parsedData, vendor: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] text-gray-400 block mb-1">STORAGE LOCATION</label>
+                  <input
+                    type="text"
+                    value={parsedData.storageLocation || ''}
+                    onChange={(e) =>
+                      setParsedData({ ...parsedData, storageLocation: e.target.value })
+                    }
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                  />
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] text-gray-500 block">CATEGORY</span>
-                <span className="text-gray-300">{parsedData.category}</span>
+            ) : (
+              /* Read-only summary card */
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-[#0E1216] p-3 rounded-xl border border-[#1E2730] text-xs font-mono">
+                <div className="col-span-2 sm:col-span-3">
+                  <span className="text-[10px] text-gray-500 block">PRODUCT NAME</span>
+                  <span className="text-white font-bold text-sm">{parsedData.name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 block">CATEGORY</span>
+                  <span className="text-gray-300">{parsedData.category}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 block">QUANTITY</span>
+                  <span className="text-white font-bold">
+                    {parsedData.quantity} {parsedData.unit || 'pcs'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 block">UNIT PRICE</span>
+                  <span className="text-[#00FF66] font-bold">
+                    {formatINR(parsedData.unitPrice)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 block">TOTAL COST</span>
+                  <span className="text-[#00FF66] font-bold">
+                    {formatINR((parsedData.quantity || 1) * (parsedData.unitPrice || 0))}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 block">SUPPLIER</span>
+                  <span className="text-gray-300">{parsedData.vendor || 'Direct'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 block">LOCATION</span>
+                  <span className="text-gray-300">{parsedData.storageLocation || 'Main Lab'}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] text-gray-500 block">QUANTITY</span>
-                <span className="text-white font-bold">
-                  {parsedData.quantity} {parsedData.unit || 'pcs'}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-500 block">UNIT PRICE</span>
-                <span className="text-[#00FF66] font-bold">
-                  {formatINR(parsedData.unitPrice)}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-500 block">TOTAL COST</span>
-                <span className="text-[#00FF66] font-bold">
-                  {formatINR((parsedData.quantity || 1) * (parsedData.unitPrice || 0))}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-500 block">SUPPLIER</span>
-                <span className="text-gray-300">{parsedData.vendor || 'Direct'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-500 block">LOCATION</span>
-                <span className="text-gray-300">{parsedData.storageLocation || 'Main Lab'}</span>
-              </div>
-            </div>
+            )}
 
             {savedSuccess ? (
               <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center justify-center gap-2">

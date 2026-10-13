@@ -4,6 +4,8 @@ import { Sidebar, NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { InventoryView } from './components/InventoryView';
+import { BarcodeScannerView } from './components/BarcodeScannerView';
+import { GenerateLabelsModal } from './components/GenerateLabelsModal';
 import { ProjectsView } from './components/ProjectsView';
 import { PurchasesView } from './components/PurchasesView';
 import { AiAssistantView } from './components/AiAssistantView';
@@ -18,16 +20,17 @@ import { AiAddItemModal } from './components/AiAddItemModal';
 import { Product, Project } from './types';
 
 function AppContent() {
-  const { dataLoading, dbError } = useInventory();
+  const { dbError } = useInventory();
 
   // Navigation
-  const [currentTab, setCurrentTab] = useState<NavTab>('inventory');
+  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [initialAiPrompt, setInitialAiPrompt] = useState<string>('');
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Modal states
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [itemModalInitialSku, setItemModalInitialSku] = useState<string | undefined>(undefined);
   const [isAiAddItemModalOpen, setIsAiAddItemModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
@@ -43,12 +46,24 @@ function AppContent() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
 
+  const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
+  const [labelsModalOptions, setLabelsModalOptions] = useState<
+    { startSku?: string; endSku?: string; productId?: string; projectId?: string } | undefined
+  >(undefined);
+
   return (
     <div className="min-h-screen bg-[#090B0C] text-[#EDEDED] flex">
       {/* Sidebar */}
       <Sidebar
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={(tab) => {
+          if (tab === 'labels') {
+            setLabelsModalOptions(undefined);
+            setIsLabelsModalOpen(true);
+          } else {
+            setCurrentTab(tab);
+          }
+        }}
         collapsed={collapsed}
         setCollapsed={setCollapsed}
         isMobileOpen={isMobileOpen}
@@ -84,7 +99,17 @@ function AppContent() {
               }}
               onOpenAddItem={() => {
                 setProductToEdit(null);
+                setItemModalInitialSku(undefined);
                 setIsItemModalOpen(true);
+              }}
+              onOpenScanner={() => setCurrentTab('scanner')}
+              onOpenLabels={() => {
+                setLabelsModalOptions(undefined);
+                setIsLabelsModalOpen(true);
+              }}
+              onViewItemDetails={(p) => {
+                setDetailsProduct(p);
+                setIsDetailsModalOpen(true);
               }}
             />
           )}
@@ -93,11 +118,13 @@ function AppContent() {
             <InventoryView
               onOpenAddItem={() => {
                 setProductToEdit(null);
+                setItemModalInitialSku(undefined);
                 setIsItemModalOpen(true);
               }}
               onOpenAiAddItem={() => setIsAiAddItemModalOpen(true)}
               onEditItem={(p) => {
                 setProductToEdit(p);
+                setItemModalInitialSku(undefined);
                 setIsItemModalOpen(true);
               }}
               onAdjustStock={(p) => {
@@ -112,6 +139,38 @@ function AppContent() {
                 setInitialAiPrompt(prompt);
                 setCurrentTab('assistant');
               }}
+              onOpenScanner={() => setCurrentTab('scanner')}
+              onOpenLabels={(p) => {
+                setLabelsModalOptions(
+                  p ? { productId: p.id, startSku: p.sku, endSku: p.sku } : undefined
+                );
+                setIsLabelsModalOpen(true);
+              }}
+            />
+          )}
+
+          {currentTab === 'scanner' && (
+            <BarcodeScannerView
+              onOpenItemDetails={(p) => {
+                setDetailsProduct(p);
+                setIsDetailsModalOpen(true);
+              }}
+              onOpenAddItemWithSku={(sku) => {
+                setProductToEdit(null);
+                setItemModalInitialSku(sku);
+                setIsItemModalOpen(true);
+              }}
+              onOpenEditItem={(p) => {
+                setProductToEdit(p);
+                setItemModalInitialSku(undefined);
+                setIsItemModalOpen(true);
+              }}
+              onOpenLabelsForProduct={(p) => {
+                setLabelsModalOptions({ productId: p.id, startSku: p.sku, endSku: p.sku });
+                setIsLabelsModalOpen(true);
+              }}
+              onNavigateToProjects={() => setCurrentTab('projects')}
+              onNavigateToPurchases={() => setCurrentTab('purchases')}
             />
           )}
 
@@ -149,6 +208,14 @@ function AppContent() {
             <AiAssistantView
               initialPrompt={initialAiPrompt}
               onClearInitialPrompt={() => setInitialAiPrompt('')}
+              onOpenItemDetails={(p) => {
+                setDetailsProduct(p);
+                setIsDetailsModalOpen(true);
+              }}
+              onOpenLabelsModal={(opts) => {
+                setLabelsModalOptions(opts);
+                setIsLabelsModalOpen(true);
+              }}
             />
           )}
 
@@ -173,8 +240,21 @@ function AppContent() {
 
       <ItemModal
         isOpen={isItemModalOpen}
-        onClose={() => setIsItemModalOpen(false)}
+        onClose={() => {
+          setIsItemModalOpen(false);
+          setItemModalInitialSku(undefined);
+        }}
         productToEdit={productToEdit}
+        initialSku={itemModalInitialSku}
+      />
+
+      <GenerateLabelsModal
+        isOpen={isLabelsModalOpen}
+        onClose={() => setIsLabelsModalOpen(false)}
+        initialProductId={labelsModalOptions?.productId}
+        initialStartSku={labelsModalOptions?.startSku}
+        initialEndSku={labelsModalOptions?.endSku}
+        initialProjectId={labelsModalOptions?.projectId}
       />
 
       <PurchaseModal
@@ -211,6 +291,12 @@ function AppContent() {
           setPurchaseDefaultProductId(p.id);
           setIsPurchaseModalOpen(true);
         }}
+        onGenerateLabel={(p) => {
+          setLabelsModalOptions({ productId: p.id, startSku: p.sku, endSku: p.sku });
+          setIsLabelsModalOpen(true);
+        }}
+        onNavigateToProject={() => setCurrentTab('projects')}
+        onNavigateToPurchases={() => setCurrentTab('purchases')}
       />
     </div>
   );

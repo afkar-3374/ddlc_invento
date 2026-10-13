@@ -13,10 +13,18 @@ import {
   ArrowRight,
   PlusCircle,
   FileCheck2,
+  Tag,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
-import { ProposedAction } from '../types';
+import { Product, ProposedAction } from '../types';
 import { formatINR } from '../services/dbService';
+import {
+  generateLabelsPdf,
+  filterProductsBySkuRange,
+  LABEL_SIZES,
+} from '../services/labelService';
 
 interface ChatMessage {
   id: string;
@@ -30,11 +38,20 @@ interface ChatMessage {
 interface AiAssistantViewProps {
   initialPrompt?: string;
   onClearInitialPrompt?: () => void;
+  onOpenItemDetails?: (product: Product) => void;
+  onOpenLabelsModal?: (options?: {
+    startSku?: string;
+    endSku?: string;
+    productId?: string;
+    projectId?: string;
+  }) => void;
 }
 
 export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
   initialPrompt,
   onClearInitialPrompt,
+  onOpenItemDetails,
+  onOpenLabelsModal,
 }) => {
   const {
     products,
@@ -53,6 +70,57 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
   } = useInventory();
 
   const [autoExecute, setAutoExecute] = useState(true);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const handleDownloadActionPdf = async (payload: any) => {
+    try {
+      setGeneratingPdf(true);
+      let matched: Product[] = [];
+      if (payload.startSku || payload.endSku) {
+        const res = filterProductsBySkuRange(products, payload.startSku || '', payload.endSku || '');
+        matched = res.matchedProducts;
+      } else {
+        matched = [...products];
+      }
+      if (payload.filterProject) {
+        const pLower = payload.filterProject.toLowerCase();
+        matched = matched.filter(
+          (p) =>
+            (p.projectId && p.projectId.toLowerCase().includes(pLower)) ||
+            (projects.find((proj) => proj.id === p.projectId)?.name.toLowerCase().includes(pLower))
+        );
+      }
+      if (payload.searchTerm) {
+        const sLower = payload.searchTerm.toLowerCase();
+        matched = matched.filter(
+          (p) =>
+            p.name.toLowerCase().includes(sLower) ||
+            p.sku.toLowerCase().includes(sLower) ||
+            p.category.toLowerCase().includes(sLower)
+        );
+      }
+      if (matched.length === 0) {
+        alert('No matching products found in database for this label selection.');
+        return;
+      }
+
+      const copies = Math.max(1, payload.copies || 1);
+      const blob = await generateLabelsPdf(
+        matched.map((p) => ({ product: p, copies })),
+        LABEL_SIZES[0]
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ddlc_labels_${matched.length}_items.pdf`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e: any) {
+      alert(`PDF label generation failed: ${e?.message}`);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome_1',
@@ -626,27 +694,117 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
                   {m.text}
                 </div>
 
-                {/* Direct Action Confirmation Badge (No raw JSON writing) */}
+                {/* Action Cards */}
                 {m.action && (
                   <div className="mt-3 pt-3 border-t border-[#1F272F]">
-                    <div className="p-3 rounded-xl bg-[#0F1B14] border border-[#00FF66]/30 flex items-center justify-between gap-3 shadow-[0_0_12px_rgba(0,255,102,0.1)]">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-[#14261C] border border-[#00FF66]/40 flex items-center justify-center shrink-0 text-[#00FF66]">
-                          <CheckCircle2 className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-white font-mono flex items-center gap-2">
-                            <span>{m.action.summary || 'Item Directly Added'}</span>
-                            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40">
-                              DIRECTLY SAVED
-                            </span>
+                    {/* 1. Label Generation Action */}
+                    {m.action.type === 'GENERATE_LABELS' && (
+                      <div className="p-3.5 rounded-xl bg-[#0D1612] border border-[#00FF66]/40 shadow-[0_0_15px_rgba(0,255,102,0.12)] space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#00FF66]">
+                            <Tag className="w-4 h-4" />
+                            <span>{m.action.summary || 'Barcode Labels Ready'}</span>
                           </div>
-                          <div className="text-[11px] text-gray-400 font-mono mt-0.5">
-                            Committed to real Cloud Firestore database • Live synchronization active
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/30">
+                            CODE 128 PDF
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-gray-300 font-mono">
+                          Ready for print on standard sheets or thermal roll printers (50×25mm).
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <button
+                            onClick={() => handleDownloadActionPdf(m.action!.payload)}
+                            disabled={generatingPdf}
+                            className="px-3.5 py-1.5 rounded-lg bg-[#00FF66] hover:bg-[#1aff75] text-black font-bold text-xs font-mono flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>{generatingPdf ? 'Generating PDF...' : 'Download Labels PDF'}</span>
+                          </button>
+
+                          {onOpenLabelsModal && (
+                            <button
+                              onClick={() => onOpenLabelsModal(m.action!.payload)}
+                              className="px-3 py-1.5 rounded-lg bg-[#141A1F] hover:bg-[#1C252D] border border-[#232F3A] text-gray-200 text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-[#00FF66]" />
+                              <span>Open in Label Studio</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. Show Product Details Action */}
+                    {m.action.type === 'SHOW_PRODUCT_DETAILS' && (() => {
+                      const prod = products.find(
+                        (p) =>
+                          p.id === m.action!.payload?.productId ||
+                          p.sku === m.action!.payload?.sku
+                      );
+                      return (
+                        <div className="p-3.5 rounded-xl bg-[#12171B] border border-[#222E39] space-y-2.5 shadow-md">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono font-bold text-[#00FF66] px-2 py-0.5 rounded bg-[#16221A] border border-[#00FF66]/30">
+                                {m.action.payload?.sku || prod?.sku}
+                              </span>
+                              <span className="text-xs font-bold text-white truncate max-w-[200px]">
+                                {prod?.name || 'Inventory Record'}
+                              </span>
+                            </div>
+                            {prod && (
+                              <span className="text-[11px] font-mono text-gray-300">
+                                Stock: {prod.quantity} {prod.unit}
+                              </span>
+                            )}
+                          </div>
+
+                          {prod && (
+                            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-gray-400 bg-[#0C1013] p-2 rounded-lg border border-[#1A2228]">
+                              <div>Unit Cost: <span className="text-white font-semibold">{formatINR(prod.unitPrice)}</span></div>
+                              <div>Valuation: <span className="text-[#00FF66] font-semibold">{formatINR((prod.quantity || 0) * (prod.unitPrice || 0))}</span></div>
+                              <div>Location: <span className="text-white">{prod.storageLocation || 'Main Lab'}</span></div>
+                              <div>Project: <span className="text-emerald-400">{prod.projectId || 'General'}</span></div>
+                            </div>
+                          )}
+
+                          {prod && onOpenItemDetails && (
+                            <button
+                              onClick={() => onOpenItemDetails(prod)}
+                              className="px-3 py-1.5 rounded-lg bg-[#182128] hover:bg-[#202C36] border border-[#2A3744] text-[#00FF66] text-xs font-mono font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Open Full Record</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* 3. Database Modifications Action Badge */}
+                    {m.action.type !== 'GENERATE_LABELS' && m.action.type !== 'SHOW_PRODUCT_DETAILS' && (
+                      <div className="p-3 rounded-xl bg-[#0F1B14] border border-[#00FF66]/30 flex items-center justify-between gap-3 shadow-[0_0_12px_rgba(0,255,102,0.1)]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#14261C] border border-[#00FF66]/40 flex items-center justify-center shrink-0 text-[#00FF66]">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white font-mono flex items-center gap-2">
+                              <span>{m.action.summary || 'Item Directly Added'}</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40">
+                                DIRECTLY SAVED
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-gray-400 font-mono mt-0.5">
+                              Committed to real Cloud Firestore database • Live synchronization active
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 

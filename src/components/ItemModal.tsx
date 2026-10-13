@@ -8,17 +8,22 @@ interface ItemModalProps {
   isOpen: boolean;
   onClose: () => void;
   productToEdit?: Product | null;
+  initialSku?: string;
 }
 
 export const ItemModal: React.FC<ItemModalProps> = ({
   isOpen,
   onClose,
   productToEdit,
+  initialSku,
 }) => {
   const { addProduct, editProduct, categories, projects, vendors, addCategory } = useInventory();
 
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
   const [category, setCategory] = useState('Computing');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showNewCatInput, setShowNewCatInput] = useState(false);
@@ -41,6 +46,9 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     if (productToEdit) {
       setName(productToEdit.name);
       setSku(productToEdit.sku);
+      setBarcode(productToEdit.barcode || '');
+      setBrand(productToEdit.brand || '');
+      setModel(productToEdit.model || '');
       setCategory(productToEdit.category || 'Computing');
       setDescription(productToEdit.description || '');
       setQuantity(productToEdit.quantity || 0);
@@ -55,6 +63,9 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     } else {
       setName('');
       setCategory('Computing');
+      setBarcode('');
+      setBrand('');
+      setModel('');
       setDescription('');
       setQuantity(1);
       setUnit('pcs');
@@ -65,11 +76,14 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setProjectId(projects[0]?.id || '');
       setStorageLocation('Lab Rack 1');
       setNotes('');
-      // Generate preview SKU
-      generatePreviewSku('Computing');
+      if (initialSku) {
+        setSku(initialSku);
+      } else {
+        generatePreviewSku('Computing');
+      }
     }
     setError(null);
-  }, [productToEdit, isOpen]);
+  }, [productToEdit, isOpen, initialSku]);
 
   const generatePreviewSku = async (catName: string) => {
     try {
@@ -129,6 +143,9 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
       const payload = {
         sku: sku || (await generateUniqueSKU(category.slice(0, 3))),
+        barcode: barcode.trim(),
+        brand: brand.trim(),
+        model: model.trim(),
         name: name.trim(),
         category,
         description,
@@ -369,7 +386,49 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             </span>
           </div>
 
-          {/* Row 4: Vendor & Storage Location */}
+          {/* Row 4: Barcode, Brand & Model */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                BARCODE VALUE (OPTIONAL)
+              </label>
+              <input
+                type="text"
+                placeholder="External barcode / UPC"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-cyan-400 font-mono text-xs focus:outline-none focus:border-[#00FF66]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                BRAND / MANUFACTURER
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Raspberry Pi, Espressif"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-white focus:outline-none focus:border-[#00FF66]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                MODEL / REVISION
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Model B Rev 1.2"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-white focus:outline-none focus:border-[#00FF66]"
+              />
+            </div>
+          </div>
+
+          {/* Row 5: Vendor & Storage Location */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-mono text-gray-400 block mb-1">
@@ -413,22 +472,45 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#182026]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#141A1F] text-gray-400 hover:text-white"
-            >
-              Cancel
-            </button>
+          <div className="flex items-center justify-between gap-2.5 pt-3 border-t border-[#182026]">
+            {!productToEdit ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setName('');
+                  setBarcode('');
+                  setBrand('');
+                  setModel('');
+                  setDescription('');
+                  setQuantity(1);
+                  setUnitPrice(0);
+                  setVendor('');
+                  setStorageLocation('');
+                  setNotes('');
+                }}
+                className="px-3 py-2 rounded-xl text-xs font-mono text-red-400 hover:text-red-300 border border-red-500/30 hover:bg-red-950/40 transition-colors cursor-pointer"
+              >
+                Clear Form
+              </button>
+            ) : <div />}
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-5 py-2 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] text-[#0A0D0F] font-semibold flex items-center gap-2 shadow-[0_0_12px_rgba(0,255,102,0.25)] disabled:opacity-50"
-            >
-              {saving ? 'Writing to Firestore...' : productToEdit ? 'Save Changes' : 'Create Product'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-[#141A1F] text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] text-[#0A0D0F] font-semibold flex items-center gap-2 shadow-[0_0_12px_rgba(0,255,102,0.25)] disabled:opacity-50"
+              >
+                {saving ? 'Writing to Firestore...' : productToEdit ? 'Save Changes' : 'Create Product'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -10,10 +10,21 @@ import {
   Cpu,
   ChevronLeft,
   ChevronRight,
+  ScanLine,
+  Tag,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
-export type NavTab = 'dashboard' | 'inventory' | 'projects' | 'purchases' | 'assistant' | 'reports' | 'vendors';
+export type NavTab =
+  | 'dashboard'
+  | 'inventory'
+  | 'scanner'
+  | 'labels'
+  | 'projects'
+  | 'purchases'
+  | 'assistant'
+  | 'reports'
+  | 'vendors';
 
 interface SidebarProps {
   currentTab: NavTab;
@@ -35,10 +46,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { products, purchases } = useInventory();
 
   const navItems: Array<{ id: NavTab; label: string; icon: React.ReactNode; badge?: string }> = [
-    { id: 'inventory', label: 'Items & Purchases', icon: <Boxes className="w-4 h-4 text-[#00FF66]" /> },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4 text-[#00FF66]" /> },
+    { id: 'inventory', label: 'Items & Inventory', icon: <Boxes className="w-4 h-4 text-[#00FF66]" /> },
+    { id: 'scanner', label: 'Barcode Scanner', icon: <ScanLine className="w-4 h-4 text-[#00FF66]" />, badge: 'SCAN' },
+    { id: 'labels', label: 'Generate Labels', icon: <Tag className="w-4 h-4 text-[#00FF66]" /> },
     { id: 'assistant', label: 'AI Lab Co-Pilot', icon: <BotMessageSquare className="w-4 h-4 text-[#00FF66]" />, badge: 'AI' },
     { id: 'projects', label: 'Projects & BOM', icon: <FolderGit2 className="w-4 h-4" /> },
     { id: 'purchases', label: 'Purchase Ledger', icon: <ReceiptText className="w-4 h-4" /> },
+    { id: 'reports', label: 'Reports', icon: <FileSpreadsheet className="w-4 h-4" /> },
+    { id: 'vendors', label: 'Suppliers', icon: <Building2 className="w-4 h-4" /> },
   ];
 
   return (
