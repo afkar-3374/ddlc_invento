@@ -152,22 +152,21 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubProducts = onSnapshot(
       collection(db, 'products'),
       (snap) => {
-        if (!snap.empty) {
-          const list: Product[] = [];
-          snap.forEach((d) => list.push(d.data() as Product));
-          // Ensure every product has itemNumber & totalCost without GST
-          const normalized = list.map((p, idx) => {
-            const itemNum = p.itemNumber || (idx + 1);
-            const q = Number(p.quantity) || 0;
-            const up = Number(p.unitPrice) || 0;
-            const total = q * up;
-            return { ...p, itemNumber: itemNum, gstPercent: 0, gstAmount: 0, totalCost: total };
-          });
-          setProducts(normalized);
-        }
+        const list: Product[] = [];
+        snap.forEach((d) => list.push(d.data() as Product));
+        // Ensure every product has itemNumber & totalCost without GST
+        const normalized = list.map((p, idx) => {
+          const itemNum = p.itemNumber || (idx + 1);
+          const q = Number(p.quantity) || 0;
+          const up = Number(p.unitPrice) || 0;
+          const total = q * up;
+          return { ...p, itemNumber: itemNum, gstPercent: 0, gstAmount: 0, totalCost: total };
+        });
+        normalized.sort((a, b) => (b.itemNumber || 0) - (a.itemNumber || 0));
+        setProducts(normalized);
       },
       (error) => {
-        console.warn('Firestore products notice (using local cache):', error);
+        console.warn('Firestore products notice:', error);
       }
     );
 
@@ -175,11 +174,9 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubProjects = onSnapshot(
       collection(db, 'projects'),
       (snap) => {
-        if (!snap.empty) {
-          const list: Project[] = [];
-          snap.forEach((d) => list.push(d.data() as Project));
-          setProjects(list);
-        }
+        const list: Project[] = [];
+        snap.forEach((d) => list.push(d.data() as Project));
+        setProjects(list);
       },
       (error) => console.warn('Firestore projects notice:', error)
     );
@@ -188,18 +185,16 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const unsubPurchases = onSnapshot(
       collection(db, 'purchases'),
       (snap) => {
-        if (!snap.empty) {
-          const list: Purchase[] = [];
-          snap.forEach((d) => {
-            const pu = d.data() as Purchase;
-            const q = Number(pu.quantity) || 0;
-            const up = Number(pu.unitPrice) || 0;
-            const total = q * up;
-            list.push({ ...pu, gstRate: 0, gstAmount: 0, invoiceTotal: total });
-          });
-          list.sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
-          setPurchases(list);
-        }
+        const list: Purchase[] = [];
+        snap.forEach((d) => {
+          const pu = d.data() as Purchase;
+          const q = Number(pu.quantity) || 0;
+          const up = Number(pu.unitPrice) || 0;
+          const total = q * up;
+          list.push({ ...pu, gstRate: 0, gstAmount: 0, invoiceTotal: total });
+        });
+        list.sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
+        setPurchases(list);
       },
       (error) => console.warn('Firestore purchases notice:', error)
     );
@@ -454,8 +449,14 @@ export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         clearAllData: async () => {
           setProducts([]);
           setPurchases([]);
+          setProjects([]);
+          setVendors([]);
+          setCategories([]);
+          setStockMovements([]);
+          setAuditLogs([]);
           localStorage.removeItem('ddlc_products');
           localStorage.removeItem('ddlc_purchases');
+          localStorage.removeItem('ddlc_projects');
           await dbService.clearAllData();
         },
         resetToSampleData,

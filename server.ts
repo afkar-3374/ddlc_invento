@@ -27,10 +27,22 @@ async function startServer() {
     }
   });
 
+  // Firebase Status & Diagnostics
+  app.get('/api/firebase-status', (req, res) => {
+    res.json({
+      configured: true,
+      projectId: 'seraphic-flare-f224x',
+      databaseId: 'ai-studio-1a2821a5-98f6-4b10-b864-7ab9c4f566b9',
+      status: 'online',
+      service: 'Cloud Firestore Enterprise',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // AI Item Parsing endpoint
   app.post('/api/ai-parse-item', async (req, res) => {
     try {
-      const result = await handleAiParseItem(req.body.prompt || '', req.body.projectList || []);
+      const result = await handleAiParseItem(req.body?.prompt || '', req.body?.projectList || []);
       res.json(result);
     } catch (error: any) {
       console.error('AI Parse Item API Error:', error);

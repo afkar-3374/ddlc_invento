@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteDoc,
   runTransaction,
+  writeBatch,
   query,
   orderBy,
   onSnapshot,
@@ -483,18 +484,32 @@ export async function clearAllData(): Promise<void> {
     'categories',
     'stockMovements',
     'auditLogs',
+    'skuCounters',
   ];
 
   for (const colName of collectionsToClear) {
     try {
       const snap = await getDocs(collection(db, colName));
-      const deletePromises = snap.docs.map((docSnap) => deleteDoc(doc(db, colName, docSnap.id)));
-      await Promise.all(deletePromises);
+      if (!snap.empty) {
+        const batch = writeBatch(db);
+        snap.docs.forEach((docSnap) => {
+          batch.delete(docSnap.ref);
+        });
+        await batch.commit();
+      }
     } catch (e) {
       console.warn(`Error clearing collection ${colName}:`, e);
+      try {
+        const snap = await getDocs(collection(db, colName));
+        for (const docSnap of snap.docs) {
+          await deleteDoc(doc(db, colName, docSnap.id));
+        }
+      } catch (innerErr) {
+        console.error(`Fallback deletion failed for ${colName}:`, innerErr);
+      }
     }
   }
 
-  console.log('All previous database records cleared.');
+  console.log('All previous database records cleared from Cloud Firestore.');
 }
 
