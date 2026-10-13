@@ -3,14 +3,8 @@ import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
-import { InventoryView } from './components/InventoryView';
-import { BarcodeScannerView } from './components/BarcodeScannerView';
+import { SettingsView } from './components/SettingsView';
 import { GenerateLabelsModal } from './components/GenerateLabelsModal';
-import { ProjectsView } from './components/ProjectsView';
-import { PurchasesView } from './components/PurchasesView';
-import { AiAssistantView } from './components/AiAssistantView';
-import { ReportsView } from './components/ReportsView';
-import { VendorsView } from './components/VendorsView';
 import { ItemModal } from './components/ItemModal';
 import { PurchaseModal } from './components/PurchaseModal';
 import { ProjectModal } from './components/ProjectModal';
@@ -22,9 +16,8 @@ import { Product, Project } from './types';
 function AppContent() {
   const { dbError } = useInventory();
 
-  // Navigation
+  // Primary Navigation: Dashboard & Settings
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
-  const [initialAiPrompt, setInitialAiPrompt] = useState<string>('');
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -53,17 +46,10 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-[#090B0C] text-[#EDEDED] flex">
-      {/* Sidebar */}
+      {/* Sidebar: Dashboard & Settings */}
       <Sidebar
         currentTab={currentTab}
-        setCurrentTab={(tab) => {
-          if (tab === 'labels') {
-            setLabelsModalOptions(undefined);
-            setIsLabelsModalOpen(true);
-          } else {
-            setCurrentTab(tab);
-          }
-        }}
+        setCurrentTab={setCurrentTab}
         collapsed={collapsed}
         setCollapsed={setCollapsed}
         isMobileOpen={isMobileOpen}
@@ -79,7 +65,7 @@ function AppContent() {
         {/* Header Telemetry Bar */}
         <Header
           onOpenMobileMenu={() => setIsMobileOpen(true)}
-          onOpenAi={() => setCurrentTab('assistant')}
+          onOpenAi={() => setCurrentTab('dashboard')}
         />
 
         {/* Database notification warning if any */}
@@ -93,142 +79,25 @@ function AppContent() {
         <main className="flex-1 p-4 lg:p-6 max-w-7xl w-full mx-auto">
           {currentTab === 'dashboard' && (
             <DashboardView
-              onNavigate={(tab, prompt) => {
-                if (prompt) setInitialAiPrompt(prompt);
-                setCurrentTab(tab);
-              }}
-              onOpenAddItem={() => {
-                setProductToEdit(null);
-                setItemModalInitialSku(undefined);
-                setIsItemModalOpen(true);
-              }}
-              onOpenScanner={() => setCurrentTab('scanner')}
-              onOpenLabels={() => {
-                setLabelsModalOptions(undefined);
-                setIsLabelsModalOpen(true);
-              }}
-              onViewItemDetails={(p) => {
-                setDetailsProduct(p);
-                setIsDetailsModalOpen(true);
-              }}
-            />
-          )}
-
-          {currentTab === 'inventory' && (
-            <InventoryView
               onOpenAddItem={() => {
                 setProductToEdit(null);
                 setItemModalInitialSku(undefined);
                 setIsItemModalOpen(true);
               }}
               onOpenAiAddItem={() => setIsAiAddItemModalOpen(true)}
-              onEditItem={(p) => {
-                setProductToEdit(p);
-                setItemModalInitialSku(undefined);
-                setIsItemModalOpen(true);
-              }}
-              onAdjustStock={(p) => {
-                setStockAdjustProduct(p);
-                setIsStockAdjustModalOpen(true);
+              onOpenLabels={(opts) => {
+                setLabelsModalOptions(opts);
+                setIsLabelsModalOpen(true);
               }}
               onViewItemDetails={(p) => {
                 setDetailsProduct(p);
                 setIsDetailsModalOpen(true);
               }}
-              onNavigateToAssistant={(prompt) => {
-                setInitialAiPrompt(prompt);
-                setCurrentTab('assistant');
-              }}
-              onOpenScanner={() => setCurrentTab('scanner')}
-              onOpenLabels={(p) => {
-                setLabelsModalOptions(
-                  p ? { productId: p.id, startSku: p.sku, endSku: p.sku } : undefined
-                );
-                setIsLabelsModalOpen(true);
-              }}
+              onNavigateToSettings={() => setCurrentTab('settings')}
             />
           )}
 
-          {currentTab === 'scanner' && (
-            <BarcodeScannerView
-              onOpenItemDetails={(p) => {
-                setDetailsProduct(p);
-                setIsDetailsModalOpen(true);
-              }}
-              onOpenAddItemWithSku={(sku) => {
-                setProductToEdit(null);
-                setItemModalInitialSku(sku);
-                setIsItemModalOpen(true);
-              }}
-              onOpenEditItem={(p) => {
-                setProductToEdit(p);
-                setItemModalInitialSku(undefined);
-                setIsItemModalOpen(true);
-              }}
-              onOpenLabelsForProduct={(p) => {
-                setLabelsModalOptions({ productId: p.id, startSku: p.sku, endSku: p.sku });
-                setIsLabelsModalOpen(true);
-              }}
-              onNavigateToProjects={() => setCurrentTab('projects')}
-              onNavigateToPurchases={() => setCurrentTab('purchases')}
-            />
-          )}
-
-          {currentTab === 'projects' && (
-            <ProjectsView
-              onOpenNewProject={() => {
-                setProjectToEdit(null);
-                setIsProjectModalOpen(true);
-              }}
-              onEditProject={(proj) => {
-                setProjectToEdit(proj);
-                setIsProjectModalOpen(true);
-              }}
-              onNavigateToAssistant={(prompt) => {
-                setInitialAiPrompt(prompt);
-                setCurrentTab('assistant');
-              }}
-            />
-          )}
-
-          {currentTab === 'purchases' && (
-            <PurchasesView
-              onOpenAddPurchase={() => {
-                setPurchaseDefaultProductId(undefined);
-                setIsPurchaseModalOpen(true);
-              }}
-              onNavigateToAssistant={(prompt) => {
-                setInitialAiPrompt(prompt);
-                setCurrentTab('assistant');
-              }}
-            />
-          )}
-
-          {currentTab === 'assistant' && (
-            <AiAssistantView
-              initialPrompt={initialAiPrompt}
-              onClearInitialPrompt={() => setInitialAiPrompt('')}
-              onOpenItemDetails={(p) => {
-                setDetailsProduct(p);
-                setIsDetailsModalOpen(true);
-              }}
-              onOpenLabelsModal={(opts) => {
-                setLabelsModalOptions(opts);
-                setIsLabelsModalOpen(true);
-              }}
-            />
-          )}
-
-          {currentTab === 'reports' && <ReportsView />}
-
-          {currentTab === 'vendors' && (
-            <VendorsView
-              onNavigateToAssistant={(prompt) => {
-                setInitialAiPrompt(prompt);
-                setCurrentTab('assistant');
-              }}
-            />
-          )}
+          {currentTab === 'settings' && <SettingsView />}
         </main>
       </div>
 
@@ -295,8 +164,8 @@ function AppContent() {
           setLabelsModalOptions({ productId: p.id, startSku: p.sku, endSku: p.sku });
           setIsLabelsModalOpen(true);
         }}
-        onNavigateToProject={() => setCurrentTab('projects')}
-        onNavigateToPurchases={() => setCurrentTab('purchases')}
+        onNavigateToProject={() => setCurrentTab('dashboard')}
+        onNavigateToPurchases={() => setCurrentTab('dashboard')}
       />
     </div>
   );

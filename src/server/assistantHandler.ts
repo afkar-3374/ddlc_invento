@@ -3,18 +3,26 @@ import { GoogleGenAI, Type } from '@google/genai';
 export interface AssistantRequest {
   message: string;
   history?: Array<{ role: 'user' | 'model'; text: string }>;
-  databaseSnapshot: {
-    products: any[];
-    projects: any[];
-    purchases: any[];
-    vendors: any[];
-    stockMovements: any[];
+  databaseSnapshot?: {
+    products?: any[];
+    projects?: any[];
+    purchases?: any[];
+    vendors?: any[];
+    stockMovements?: any[];
   };
 }
 
 export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{ text: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
-  const { message, history = [], databaseSnapshot } = reqBody;
+  const { message = '', history = [], databaseSnapshot = {} } = reqBody || {};
+
+  const safeSnapshot = {
+    products: Array.isArray(databaseSnapshot?.products) ? databaseSnapshot.products : [],
+    projects: Array.isArray(databaseSnapshot?.projects) ? databaseSnapshot.projects : [],
+    purchases: Array.isArray(databaseSnapshot?.purchases) ? databaseSnapshot.purchases : [],
+    vendors: Array.isArray(databaseSnapshot?.vendors) ? databaseSnapshot.vendors : [],
+    stockMovements: Array.isArray(databaseSnapshot?.stockMovements) ? databaseSnapshot.stockMovements : [],
+  };
 
   const systemInstruction = `You are the DDLC Hardware Lab Helper & Inventory Co-Pilot.
 You act as a real, helpful, knowledgeable hardware engineering colleague in the lab—attentive, conversational, proactive, and natural.
@@ -37,20 +45,20 @@ CRITICAL USER RULES:
    - Indian Rupees (₹). Total cost = quantity * unitPrice.
 
 DATABASE SNAPSHOT (REAL CLOUD FIRESTORE):
-Products (${databaseSnapshot.products?.length || 0} items):
-${JSON.stringify(databaseSnapshot.products || [], null, 2)}
+Products (${safeSnapshot.products.length} items):
+${JSON.stringify(safeSnapshot.products, null, 2)}
 
-Projects (${databaseSnapshot.projects?.length || 0} items):
-${JSON.stringify(databaseSnapshot.projects || [], null, 2)}
+Projects (${safeSnapshot.projects.length} items):
+${JSON.stringify(safeSnapshot.projects, null, 2)}
 
-Purchases (${databaseSnapshot.purchases?.length || 0} items):
-${JSON.stringify(databaseSnapshot.purchases || [], null, 2)}
+Purchases (${safeSnapshot.purchases.length} items):
+${JSON.stringify(safeSnapshot.purchases, null, 2)}
 
-Vendors (${databaseSnapshot.vendors?.length || 0} items):
-${JSON.stringify(databaseSnapshot.vendors || [], null, 2)}
+Vendors (${safeSnapshot.vendors.length} items):
+${JSON.stringify(safeSnapshot.vendors, null, 2)}
 
 Recent Stock Movements:
-${JSON.stringify((databaseSnapshot.stockMovements || []).slice(0, 30), null, 2)}
+${JSON.stringify(safeSnapshot.stockMovements.slice(0, 30), null, 2)}
 
 AI EXECUTION ACTIONS:
 You have direct execution authority over Cloud Firestore and the Label Generator.
@@ -107,7 +115,7 @@ SUPPORTED ACTION TYPES & SCHEMAS:
 \`\`\`
 
 LABEL WORKFLOW RULES:
-When the user asks to generate labels (e.g. "Generate barcode labels from SKU DDLC-CMP-00010 to DDLC-CMP-00025", "Create PDF labels for all Raspberry Pi boards", "Generate two labels for every item in Beta 2"):
+When the user asks to generate labels (e.g. "Generate barcode labels from SKU DDLC-CMP-00010 to DDLC-CMP-00025", "Create PDF labels for all Raspberry Pi boards", "Generate two labels for every item in Beta 2", "Generate labels for all products purchased from Robu this month"):
 1. Query the database snapshot for actual matching products.
 2. State the exact number of matching items and the total labels that will be created.
 3. If an SKU interval has missing SKUs in Firestore, list the missing identifiers in the response.
@@ -132,17 +140,26 @@ When the user asks to find or show details of an SKU (e.g. "Find the product wit
 
     const contents: any[] = [];
     for (const h of history) {
-      contents.push({
-        role: h.role,
-        parts: [{ text: h.text }],
-      });
+      if (h.text) {
+        contents.push({
+          role: h.role === 'model' ? 'model' : 'user',
+          parts: [{ text: h.text }],
+        });
+      }
     }
     contents.push({
       role: 'user',
       parts: [{ text: message }],
     });
 
-    const candidateModels = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    // Tested fast models without 503 high-demand issues:
+    const candidateModels = [
+      'gemini-3.1-flash-lite',
+      'gemini-3.5-flash',
+      'gemini-3.8-flash',
+      'gemini-flash-latest',
+    ];
+
     for (const modelName of candidateModels) {
       try {
         const response = await ai.models.generateContent({
@@ -167,51 +184,85 @@ When the user asks to find or show details of an SKU (e.g. "Find the product wit
     }
   }
 
-  // Autonomous fallback handler (guarantees responses even if Gemini API key is absent)
-  return handleAutonomousFallback(message, databaseSnapshot);
+  // Autonomous fallback handler (guarantees instantaneous accurate responses even if Gemini API is degraded)
+  return handleAutonomousFallback(message, safeSnapshot);
 }
 
 function handleAutonomousFallback(message: string, databaseSnapshot: any): { text: string } {
   const lowerMsg = message.toLowerCase();
-  const products = databaseSnapshot.products || [];
+  const products: any[] = databaseSnapshot.products || [];
+  const projects: any[] = databaseSnapshot.projects || [];
+  const purchases: any[] = databaseSnapshot.purchases || [];
 
-  // Pattern 1: Generate Labels
-  if (lowerMsg.includes('label') || lowerMsg.includes('barcode label')) {
-    // Check for SKU range pattern: from SKU X to Y or X to Y
+  // Helper: format INR
+  const formatINR = (val: number) => `₹${Number(val || 0).toLocaleString('en-IN')}`;
+
+  // Pattern 1: How many labels will be generated?
+  if (lowerMsg.includes('how many labels') || lowerMsg.includes('count of labels')) {
+    const copiesMatch = message.match(/(\d+)\s+(?:copies|labels?\s+per|labels?\s+for)/i);
+    const copies = copiesMatch ? parseInt(copiesMatch[1], 10) : 1;
+
+    let matched = [...products];
+    const projMatch = message.match(/\b(beta\s*\d+|gamma\s*\d+|alpha\s*\d+)\b/i);
+    if (projMatch) {
+      const pName = projMatch[1].toLowerCase();
+      matched = matched.filter((p) =>
+        (p.projectId || '').toLowerCase().includes(pName) ||
+        (projects.find(pr => pr.id === p.projectId)?.name.toLowerCase().includes(pName))
+      );
+    }
+    const total = matched.length * copies;
+    return {
+      text: `Based on your selection, **${matched.length} matching products** were found in Firestore. With **${copies} copy/copies** each, exactly **${total} Code 128 barcode labels** will be generated.`,
+    };
+  }
+
+  // Pattern 2: Generate Labels
+  if (lowerMsg.includes('label') || lowerMsg.includes('barcode label') || lowerMsg.includes('pdf label')) {
     const skuRangeMatch = message.match(/(?:from\s+(?:sku\s+)?)?([A-Za-z0-9_-]+)\s+to\s+([A-Za-z0-9_-]+)/i);
-    const copiesMatch = message.match(/(\d+)\s+(?:copies|labels?\s+per|labels?\s+for\s+every)/i);
+    const copiesMatch = message.match(/(\d+)\s+(?:copies|labels?\s+per|labels?\s+for\s+every|labels?\s+for\s+each)/i);
     const copies = copiesMatch ? parseInt(copiesMatch[1], 10) : 1;
 
     let startSku = '';
     let endSku = '';
     let filterProject = '';
     let searchTerm = '';
+    let vendorFilter = '';
 
     if (skuRangeMatch && (skuRangeMatch[1].toUpperCase().includes('DDLC') || skuRangeMatch[1].toUpperCase().includes('ITEM') || /\d/.test(skuRangeMatch[1]))) {
       startSku = skuRangeMatch[1].toUpperCase();
       endSku = skuRangeMatch[2].toUpperCase();
     }
 
-    // Check project match (e.g. Beta 2, Gamma 0)
     const projMatch = message.match(/\b(beta\s*\d+|gamma\s*\d+|alpha\s*\d+)\b/i);
     if (projMatch) {
       filterProject = projMatch[1];
     }
 
-    // Check keyword search (e.g. Raspberry Pi)
-    if (lowerMsg.includes('raspberry pi')) searchTerm = 'Raspberry Pi';
+    if (lowerMsg.includes('raspberry pi') || lowerMsg.includes('raspberry')) searchTerm = 'Raspberry Pi';
     else if (lowerMsg.includes('esp32')) searchTerm = 'ESP32';
+    else if (lowerMsg.includes('sensor')) searchTerm = 'Sensor';
+
+    if (lowerMsg.includes('robu')) vendorFilter = 'robu';
+    else if (lowerMsg.includes('mouser')) vendorFilter = 'mouser';
 
     // Calculate actual matching products
     let matchingProds = [...products];
     if (filterProject) {
+      const pLow = filterProject.toLowerCase();
       matchingProds = matchingProds.filter((p: any) =>
-        (p.projectId || '').toLowerCase().includes(filterProject.toLowerCase())
+        (p.projectId || '').toLowerCase().includes(pLow) ||
+        (projects.find(pr => pr.id === p.projectId)?.name.toLowerCase().includes(pLow))
       );
     }
     if (searchTerm) {
       matchingProds = matchingProds.filter((p: any) =>
         (p.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (vendorFilter) {
+      matchingProds = matchingProds.filter((p: any) =>
+        (p.vendor || '').toLowerCase().includes(vendorFilter)
       );
     }
     if (startSku && endSku) {
@@ -224,12 +275,38 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
     const totalLabels = matchingProds.length * copies;
 
     return {
-      text: `I've prepared the real barcode label generation for your selection!\n\n• **Matching products found**: ${matchingProds.length} items in Firestore\n• **Copies per product**: ${copies}\n• **Total labels to be generated**: ${totalLabels} Code 128 stickers\n\nClick the action button below to trigger the real PDF download immediately or preview your labels in the Label Studio.\n\n\`\`\`action\n{\n  "type": "GENERATE_LABELS",\n  "summary": "Generate PDF labels for ${matchingProds.length} items (${totalLabels} labels)",\n  "payload": {\n    "startSku": "${startSku}",\n    "endSku": "${endSku}",\n    "filterProject": "${filterProject}",\n    "searchTerm": "${searchTerm}",\n    "copies": ${copies},\n    "sizeId": "standard-50-25"\n  }\n}\n\`\`\``,
+      text: `I've prepared the real barcode label generation for your selection!\n\n• **Matching products found**: ${matchingProds.length} items in Firestore\n• **Copies per product**: ${copies}\n• **Total labels to be generated**: ${totalLabels} Code 128 stickers\n\nClick the action button below to download the real PDF immediately or open it in the Label Studio. Generating labels will not modify the inventory.\n\n\`\`\`action\n{\n  "type": "GENERATE_LABELS",\n  "summary": "Generate PDF labels for ${matchingProds.length} items (${totalLabels} labels)",\n  "payload": {\n    "startSku": "${startSku}",\n    "endSku": "${endSku}",\n    "filterProject": "${filterProject}",\n    "searchTerm": "${searchTerm}",\n    "copies": ${copies},\n    "sizeId": "standard-50-25"\n  }\n}\n\`\`\``,
     };
   }
 
-  // Pattern 2: Find Product or Show Details of SKU
-  if (lowerMsg.includes('find') || lowerMsg.includes('show details') || lowerMsg.includes('details of') || lowerMsg.includes('sku')) {
+  // Pattern 3: Show inventory items assigned to a project (e.g. "Show all inventory items assigned to Gamma 0")
+  const showProjectMatch = message.match(/(?:show|list|all|items|components).*?\b(beta\s*\d+|gamma\s*\d+|alpha\s*\d+)\b/i);
+  if (showProjectMatch) {
+    const projName = showProjectMatch[1];
+    const pLow = projName.toLowerCase();
+    const projItems = products.filter((p: any) =>
+      (p.projectId || '').toLowerCase().includes(pLow) ||
+      (projects.find(pr => pr.id === p.projectId)?.name.toLowerCase().includes(pLow))
+    );
+
+    if (projItems.length === 0) {
+      return {
+        text: `There are currently **0 inventory items** assigned to **${projName}** in Cloud Firestore. Would you like to allocate parts or add new items to ${projName}?`,
+      };
+    }
+
+    const totalVal = projItems.reduce((acc, p) => acc + ((p.quantity || 0) * (p.unitPrice || 0)), 0);
+    const itemListStr = projItems.slice(0, 10).map((p, idx) =>
+      `${idx + 1}. **${p.name}** (\`${p.sku}\`) — ${p.quantity} ${p.unit || 'pcs'} @ ${formatINR(p.unitPrice)} (Valuation: ${formatINR((p.quantity || 0) * (p.unitPrice || 0))}) [${p.storageLocation || 'Main Lab'}]`
+    ).join('\n');
+
+    return {
+      text: `Here are the components currently allocated to **${projName}** (${projItems.length} items, total valuation **${formatINR(totalVal)}**):\n\n${itemListStr}${projItems.length > 10 ? `\n\n*...and ${projItems.length - 10} more items.*` : ''}\n\nLet me know if you want to generate labels for this project or adjust any quantities!`,
+    };
+  }
+
+  // Pattern 4: Find Product or Show Details of SKU (e.g. "Find the product with SKU DDLC-CMP-00012", "Show details of DDLC-CMP-00012")
+  if (lowerMsg.includes('find') || lowerMsg.includes('show details') || lowerMsg.includes('details of') || lowerMsg.includes('sku') || lowerMsg.includes('lookup')) {
     const skuMatch = message.match(/(?:sku|item|code)?\s*([A-Za-z0-9_-]*(?:DDLC|ITEM)[A-Za-z0-9_-]*|\bITEM-\d+\b|\bDDLC-[A-Za-z0-9-]+\b)/i);
     const targetSku = skuMatch ? skuMatch[1].toUpperCase() : '';
 
@@ -241,18 +318,25 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
 
     if (found) {
       const stockValuation = (found.quantity || 0) * (found.unitPrice || 0);
+      const projDisplay = projects.find(pr => pr.id === found.projectId)?.name || found.projectId || 'Unassigned';
       return {
-        text: `Here are the complete live details for **${found.name}** (\`${found.sku}\`):\n\n• **Current Stock**: ${found.quantity} ${found.unit || 'pcs'}\n• **Unit Cost**: ₹${found.unitPrice}\n• **Total Valuation**: ₹${stockValuation}\n• **Category**: ${found.category || 'General'}\n• **Project**: ${found.projectId || 'Unassigned'}\n• **Storage Location**: ${found.storageLocation || 'Main Lab'}\n• **Supplier**: ${found.vendor || 'Not recorded'}\n• **Barcode**: ${found.barcode || 'Not recorded'}\n\nYou can inspect the full historical movements and purchase orders using the card below.\n\n\`\`\`action\n{\n  "type": "SHOW_PRODUCT_DETAILS",\n  "summary": "Details for ${found.sku}",\n  "payload": {\n    "productId": "${found.id}",\n    "sku": "${found.sku}"\n  }\n}\n\`\`\``,
+        text: `Here are the complete live details for **${found.name}** (\`${found.sku}\`):\n\n• **Current Stock**: ${found.quantity} ${found.unit || 'pcs'}\n• **Unit Cost**: ${formatINR(found.unitPrice)}\n• **Total Valuation**: ${formatINR(stockValuation)}\n• **Category**: ${found.category || 'General'}\n• **Project**: ${projDisplay}\n• **Storage Location**: ${found.storageLocation || 'Main Lab'}\n• **Supplier**: ${found.vendor || 'Not recorded'}\n• **Barcode Value**: ${found.barcode || found.sku}\n\nYou can inspect full records or movement history using the card below.\n\n\`\`\`action\n{\n  "type": "SHOW_PRODUCT_DETAILS",\n  "summary": "Details for ${found.sku}",\n  "payload": {\n    "productId": "${found.id}",\n    "sku": "${found.sku}"\n  }\n}\n\`\`\``,
       };
     }
   }
 
-  // Pattern 3: Add Item
+  // Pattern 5: Add Item
   if (lowerMsg.includes('add ') || lowerMsg.includes('create item') || lowerMsg.includes('new item')) {
     const qtyMatch = message.match(/(\d+)\s*(?:x|pcs|units|pieces)?/i);
     const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
     const priceMatch = message.match(/(?:₹|rs\.?|inr|@)\s*([\d,]+)/i);
     const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 450;
+
+    let projTarget = '';
+    const projMatch = message.match(/\b(beta\s*\d+|gamma\s*\d+|alpha\s*\d+)\b/i);
+    if (projMatch) {
+      projTarget = projMatch[1];
+    }
 
     let prodName = message
       .replace(/^(?:please\s+)?(?:add|create|insert)\s+/i, '')
@@ -262,12 +346,25 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
       .trim() || 'Electronic Component';
 
     return {
-      text: `Got it! I went ahead and added ${qty}x ${prodName} at ₹${price} to your lab inventory (Total: ₹${qty * price}). It has been assigned an automatic item number and marked as a purchase in your ledger.\n\n\`\`\`action\n{\n  "type": "ADD_PRODUCT",\n  "summary": "Add ${prodName} (${qty} pcs)",\n  "payload": {\n    "name": "${prodName}",\n    "category": "Microcontrollers",\n    "quantity": ${qty},\n    "unit": "pcs",\n    "unitPrice": ${price},\n    "gstPercent": 0,\n    "storageLocation": "Main Lab",\n    "notes": "Added via DDLC Lab Helper"\n  }\n}\n\`\`\``,
+      text: `I've prepared the addition of **${qty}x ${prodName}** at ${formatINR(price)} each (Total: ${formatINR(qty * price)})${projTarget ? ` for project **${projTarget}**` : ''}.\n\nPlease review and confirm below before saving to Cloud Firestore. You can also edit any fields or clear the item if needed.\n\n\`\`\`action\n{\n  "type": "ADD_PRODUCT",\n  "summary": "Add ${prodName} (${qty} pcs @ ${formatINR(price)})",\n  "payload": {\n    "name": "${prodName}",\n    "category": "Microcontrollers",\n    "quantity": ${qty},\n    "unit": "pcs",\n    "unitPrice": ${price},\n    "gstPercent": 0,\n    "projectId": "${projTarget}",\n    "storageLocation": "Main Lab",\n    "notes": "Added via DDLC Lab Helper"\n  }\n}\n\`\`\``,
     };
   }
 
+  // Pattern 6: Stock & Valuation Inquiries
+  if (lowerMsg.includes('stock') || lowerMsg.includes('valuation') || lowerMsg.includes('worth') || lowerMsg.includes('how much') || lowerMsg.includes('inventory')) {
+    const totalUnits = products.reduce((acc, p) => acc + (p.quantity || 0), 0);
+    const totalVal = products.reduce((acc, p) => acc + ((p.quantity || 0) * (p.unitPrice || 0)), 0);
+    const outOfStock = products.filter((p) => (p.quantity || 0) <= 0);
+    const lowStock = products.filter((p) => (p.quantity || 0) > 0 && (p.quantity || 0) <= 5);
+
+    return {
+      text: `Here is the current live summary of our hardware inventory:\n\n• **Total Unique Products**: ${products.length} registered components\n• **Total Physical Units**: ${totalUnits} units in the lab\n• **Total Stock Valuation**: ${formatINR(totalVal)}\n• **Active Projects**: ${projects.length} (${projects.map(pr => pr.name).join(', ') || 'None'})\n• **Out of Stock**: ${outOfStock.length} items\n• **Low Stock (≤5)**: ${lowStock.length} items\n\nLet me know if you would like me to drill into any specific category or project!`,
+    };
+  }
+
+  // Default helpful response
   return {
-    text: `I'm standing by to help with your lab inventory! You can ask me to generate barcode labels (e.g. *"Generate barcode labels from SKU DDLC-CMP-00010 to DDLC-CMP-00025"* or *"Create PDF labels for Beta 2"*), look up product records (*"Show details of ITEM-001"*), or add incoming components (*"Add 5x ESP32 at ₹450"*).`,
+    text: `I'm standing by to help with your lab inventory! You can ask me to:\n\n• **Generate Barcode Labels**: *"Generate barcode labels from SKU DDLC-CMP-00010 to DDLC-CMP-00025"* or *"Create PDF labels for all Raspberry Pi boards"*\n• **Inspect Products**: *"Show details of DDLC-CMP-00012"* or *"Find the product with SKU ITEM-001"*\n• **Project Breakdown**: *"Show all inventory items assigned to Gamma 0"*\n• **Add Parts**: *"Add 5x ESP32 at ₹450 to Beta 2"* (with confirmation, edit & clear options)`,
   };
 }
 
@@ -304,7 +401,13 @@ Extract standard electronic/hardware parameters:
 - projectId: ID of matching project from Available Projects if mentioned, otherwise ""
 - notes: Technical description or extra details`;
 
-  const candidateModels = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+  const candidateModels = [
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-3.8-flash',
+    'gemini-flash-latest',
+  ];
+
   for (const modelName of candidateModels) {
     try {
       const response = await ai.models.generateContent({

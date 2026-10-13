@@ -16,6 +16,11 @@ import {
   Tag,
   Download,
   ExternalLink,
+  Edit2,
+  Trash2,
+  Save,
+  X,
+  AlertCircle,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { Product, ProposedAction } from '../types';
@@ -69,8 +74,70 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
     addVendor,
   } = useInventory();
 
-  const [autoExecute, setAutoExecute] = useState(true);
+  // Confirmation mode: Ask for confirmation before saving to Firestore
+  const [autoExecute, setAutoExecute] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
+
+  const handleStartEdit = (msg: ChatMessage) => {
+    if (!msg.action) return;
+    setEditingMessageId(msg.id);
+    setEditFormData({
+      name: msg.action.payload?.name || '',
+      category: msg.action.payload?.category || 'General',
+      quantity: msg.action.payload?.quantity || 1,
+      unit: msg.action.payload?.unit || 'pcs',
+      unitPrice: msg.action.payload?.unitPrice || 0,
+      projectId: msg.action.payload?.projectId || '',
+      storageLocation: msg.action.payload?.storageLocation || 'Main Lab',
+      vendor: msg.action.payload?.vendor || '',
+      notes: msg.action.payload?.notes || '',
+    });
+  };
+
+  const handleSaveEdit = (msgId: string) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msgId && m.action) {
+          const updatedPayload = { ...m.action.payload, ...editFormData };
+          return {
+            ...m,
+            action: {
+              ...m.action,
+              summary: `Add ${updatedPayload.name || 'Component'} (${updatedPayload.quantity} ${updatedPayload.unit} @ ${formatINR(updatedPayload.unitPrice)})`,
+              payload: updatedPayload,
+            },
+          };
+        }
+        return m;
+      })
+    );
+    setEditingMessageId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditFormData({});
+  };
+
+  const handleClearAction = (msgId: string) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msgId) {
+          return {
+            ...m,
+            action: undefined,
+            text: `${m.text}\n\n*(Proposed item addition was cleared)*`,
+          };
+        }
+        return m;
+      })
+    );
+    if (editingMessageId === msgId) {
+      setEditingMessageId(null);
+    }
+  };
 
   const handleDownloadActionPdf = async (payload: any) => {
     try {
@@ -476,14 +543,25 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
         }
       }
 
-      // Direct adding: Always execute immediately without writing raw JSON code
+      // Execution flow: Only auto-execute if autoExecute toggle is ON and action is not read-only
+      const isExportOrViewAction =
+        proposedAction?.type === 'GENERATE_LABELS' ||
+        proposedAction?.type === 'SHOW_PRODUCT_DETAILS';
+
       let autoExecutedSummary = '';
-      if (proposedAction) {
-        try {
-          autoExecutedSummary = await executeActionDirectly(proposedAction);
-        } catch (e: any) {
-          console.warn('Direct execution error:', e);
-          autoExecutedSummary = `Error: ${e?.message}`;
+      let isExecuted = isExportOrViewAction;
+
+      if (proposedAction && !isExportOrViewAction) {
+        if (autoExecute) {
+          try {
+            autoExecutedSummary = await executeActionDirectly(proposedAction);
+            isExecuted = true;
+          } catch (e: any) {
+            console.warn('Direct execution error:', e);
+            autoExecutedSummary = `Error: ${e?.message}`;
+          }
+        } else {
+          isExecuted = false;
         }
       }
 
@@ -497,7 +575,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
         text: responseText || (autoExecutedSummary ? autoExecutedSummary : 'Request processed.'),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         action: proposedAction,
-        executed: true,
+        executed: isExecuted,
       };
 
       setMessages((prev) => [...prev, modelMsg]);
@@ -784,26 +862,200 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
                       );
                     })()}
 
-                    {/* 3. Database Modifications Action Badge */}
+                    {/* 3. Database Modifications Action Card: Confirm, Edit, Clear */}
                     {m.action.type !== 'GENERATE_LABELS' && m.action.type !== 'SHOW_PRODUCT_DETAILS' && (
-                      <div className="p-3 rounded-xl bg-[#0F1B14] border border-[#00FF66]/30 flex items-center justify-between gap-3 shadow-[0_0_12px_rgba(0,255,102,0.1)]">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-[#14261C] border border-[#00FF66]/40 flex items-center justify-center shrink-0 text-[#00FF66]">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-xs font-bold text-white font-mono flex items-center gap-2">
-                              <span>{m.action.summary || 'Item Directly Added'}</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40">
-                                DIRECTLY SAVED
-                              </span>
+                      m.executed ? (
+                        <div className="p-3.5 rounded-xl bg-[#0F1B14] border border-[#00FF66]/30 flex items-center justify-between gap-3 shadow-[0_0_12px_rgba(0,255,102,0.1)]">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[#14261C] border border-[#00FF66]/40 flex items-center justify-center shrink-0 text-[#00FF66]">
+                              <CheckCircle2 className="w-4 h-4" />
                             </div>
-                            <div className="text-[11px] text-gray-400 font-mono mt-0.5">
-                              Committed to real Cloud Firestore database • Live synchronization active
+                            <div>
+                              <div className="text-xs font-bold text-white font-mono flex items-center gap-2">
+                                <span>{m.action.summary || 'Item Added to Inventory'}</span>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40">
+                                  COMMITTED TO FIRESTORE
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-gray-400 font-mono mt-0.5">
+                                Live synchronization active • Purchase ledger & inventory updated
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        editingMessageId === m.id ? (
+                          <div className="p-4 rounded-xl bg-[#0E1216] border border-amber-500/40 space-y-3 font-mono text-xs shadow-lg">
+                            <div className="flex items-center justify-between text-amber-400 font-bold border-b border-[#1E2730] pb-2">
+                              <span className="flex items-center gap-1.5">
+                                <Edit2 className="w-3.5 h-3.5" />
+                                Edit Proposed Item Parameters
+                              </span>
+                              <button onClick={handleCancelEdit} className="text-gray-400 hover:text-white p-1 cursor-pointer">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              <div className="sm:col-span-2">
+                                <label className="text-[10px] text-gray-400 block mb-1">PRODUCT NAME</label>
+                                <input
+                                  type="text"
+                                  value={editFormData.name || ''}
+                                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 block mb-1">CATEGORY</label>
+                                <input
+                                  type="text"
+                                  value={editFormData.category || ''}
+                                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 block mb-1">QUANTITY & UNIT</label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={editFormData.quantity || 1}
+                                    onChange={(e) => setEditFormData({ ...editFormData, quantity: Number(e.target.value) })}
+                                    className="w-2/3 px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={editFormData.unit || 'pcs'}
+                                    onChange={(e) => setEditFormData({ ...editFormData, unit: e.target.value })}
+                                    className="w-1/3 px-2 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 block mb-1">UNIT PRICE (₹)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={editFormData.unitPrice || 0}
+                                  onChange={(e) => setEditFormData({ ...editFormData, unitPrice: Number(e.target.value) })}
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 block mb-1">PROJECT ASSIGNMENT</label>
+                                <input
+                                  type="text"
+                                  value={editFormData.projectId || ''}
+                                  onChange={(e) => setEditFormData({ ...editFormData, projectId: e.target.value })}
+                                  placeholder="e.g. Beta 2"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 block mb-1">STORAGE LOCATION</label>
+                                <input
+                                  type="text"
+                                  value={editFormData.storageLocation || ''}
+                                  onChange={(e) => setEditFormData({ ...editFormData, storageLocation: e.target.value })}
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-gray-400 block mb-1">SUPPLIER / VENDOR</label>
+                                <input
+                                  type="text"
+                                  value={editFormData.vendor || ''}
+                                  onChange={(e) => setEditFormData({ ...editFormData, vendor: e.target.value })}
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#141A1F] border border-[#242E37] text-white focus:outline-none focus:border-[#00FF66]"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-2 border-t border-[#1E2730]">
+                              <button
+                                onClick={() => handleSaveEdit(m.id)}
+                                className="px-3.5 py-1.5 rounded-lg bg-[#00FF66] hover:bg-[#1aff75] text-black font-bold font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <Save className="w-3.5 h-3.5" />
+                                Save Changes
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="px-3 py-1.5 rounded-lg bg-[#182026] hover:bg-[#202A32] text-gray-300 font-mono text-xs cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl bg-[#0E1612] border border-[#00FF66]/40 shadow-[0_0_15px_rgba(0,255,102,0.12)] space-y-3 font-mono">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                                <span className="text-xs font-bold text-white tracking-wide">
+                                  {m.action.summary || 'Proposed Item Addition'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                CONFIRMATION REQUIRED
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#090D0B] p-2.5 rounded-lg border border-[#17251C] text-[11px]">
+                              <div>
+                                <span className="text-gray-500 block text-[10px]">QUANTITY</span>
+                                <span className="text-white font-bold">{m.action.payload?.quantity || 1} {m.action.payload?.unit || 'pcs'}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 block text-[10px]">UNIT PRICE</span>
+                                <span className="text-white font-bold">{formatINR(m.action.payload?.unitPrice || 0)}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 block text-[10px]">TOTAL COST</span>
+                                <span className="text-[#00FF66] font-bold">
+                                  {formatINR((m.action.payload?.quantity || 1) * (m.action.payload?.unitPrice || 0))}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 block text-[10px]">PROJECT</span>
+                                <span className="text-emerald-300">{m.action.payload?.projectId || 'Unassigned'}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#17261D]">
+                              <button
+                                onClick={() => handleExecuteAction(m)}
+                                disabled={executingActionId === m.id}
+                                className="px-3.5 py-1.5 rounded-lg bg-[#00FF66] hover:bg-[#1aff75] text-black font-bold text-xs flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,255,102,0.25)] transition-all cursor-pointer disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>{executingActionId === m.id ? 'Saving to Firestore...' : 'Confirm & Save to Firestore'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleStartEdit(m)}
+                                className="px-3 py-1.5 rounded-lg bg-[#151D24] hover:bg-[#1E2832] border border-[#25323E] text-amber-300 text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                                title="Edit item values before committing"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                <span>Edit Item</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleClearAction(m.id)}
+                                className="px-3 py-1.5 rounded-lg bg-red-950/20 hover:bg-red-950/50 border border-red-500/30 text-red-400 text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                                title="Dismiss and clear this proposed addition"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Clear Item</span>
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      )
                     )}
                   </div>
                 )}
