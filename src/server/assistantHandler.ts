@@ -84,7 +84,7 @@ ACTION BLOCK FORMAT (Include strictly at the end when proposing an operation):
 \`\`\`
 Or
 \`\`\`action
-{ "type": "CREATE_PROJECT", "summary": "Create project ...", "payload": { ... } }
+{ "type": "CREATE_PROJECT", "summary": "Create project [Name] ([CODE])", "payload": { "name": "Project Name", "code": "CODE", "description": "Project description", "status": "Active" } }
 \`\`\`
 Or
 \`\`\`action
@@ -116,9 +116,9 @@ Or
     });
 
     const candidateModels = [
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
+      'gemini-3.8-flash',
+      'gemini-flash-latest',
+      'gemini-3.1-flash-lite',
     ];
 
     for (const modelName of candidateModels) {
@@ -377,15 +377,22 @@ export async function handleAiParseItem(prompt: string, projectList: any[] = [])
     },
   });
 
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: `Extract structured hardware product details from this natural language text: "${prompt}".
+  const candidateModels = [
+    'gemini-3.8-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+  ];
+
+  for (const modelName of candidateModels) {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: `Extract structured hardware product details from this natural language text: "${prompt}".
 Available projects: ${JSON.stringify(projectList)}
 Output ONLY valid JSON matching this schema:
 {
@@ -399,21 +406,22 @@ Output ONLY valid JSON matching this schema:
   "storageLocation": string,
   "notes": string
 }`,
-            },
-          ],
+              },
+            ],
+          },
+        ],
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
         },
-      ],
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      },
-    });
+      });
 
-    if (response.text) {
-      return JSON.parse(response.text);
+      if (response.text) {
+        return JSON.parse(response.text);
+      }
+    } catch (err) {
+      console.warn(`Gemini Parse Item notice for ${modelName}, checking next:`, err);
     }
-  } catch (err) {
-    console.warn('Gemini Parse Item notice, using fallback:', err);
   }
 
   return fallbackParseItem(prompt);

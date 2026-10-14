@@ -112,7 +112,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* ========================================================= */}
-      {/* 1. ALWAYS-READY BARCODE SCANNER (DIRECTLY BELOW HEADER)   */}
+      {/* 1. COLORFUL HERO SECTION (SUPER.MONEY-INSPIRED)             */}
+      {/* ========================================================= */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#B9F2D0]/55 via-[#E9DFFF]/45 to-[#DDEBFF]/55 border border-[#E6EDE7] p-5 sm:p-7 shadow-xs">
+        {/* Soft background ambient glow spots */}
+        <div className="absolute -top-12 -right-12 w-52 h-52 rounded-full bg-[#B9F2D0]/40 blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-[#E9DFFF]/35 blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/85 backdrop-blur-xs border border-[#CDE3D2] text-[11px] font-bold text-[#168653] shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-[#168653]" />
+              <span>DDLC AI LAB WORKSPACE</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#174D35] tracking-tight">
+              Your lab, organized <span className="inline-block animate-pulse">✨</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-[#465A4F] font-medium leading-relaxed">
+              Every component. Every project. One place.
+            </p>
+          </div>
+
+          {/* Friendly Circuit/Hardware Icon & Translucent Action Tiles */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={onOpenAddItem}
+              className="px-4 py-2.5 rounded-2xl bg-white/95 hover:bg-white text-[#174D35] text-xs sm:text-sm font-bold flex items-center gap-2 border border-white/80 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95 backdrop-blur-xs"
+            >
+              <div className="w-6 h-6 rounded-lg bg-[#E5F5E9] text-[#168653] flex items-center justify-center">
+                <Plus className="w-4 h-4" />
+              </div>
+              <span>Add Item</span>
+            </button>
+
+            <button
+              onClick={onOpenAiAssistant || onOpenAiAddItem}
+              className="px-4 py-2.5 rounded-2xl bg-[#168653] hover:bg-[#126b42] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm shadow-[#168653]/20 transition-all cursor-pointer active:scale-95"
+            >
+              <Sparkles className="w-4 h-4 text-[#B9F2D0]" />
+              <span>Ask AI</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 2. ALWAYS-READY BARCODE SCANNER (DIRECTLY BELOW HERO)     */}
       {/* ========================================================= */}
       <AlwaysReadyScanner
         products={products}
@@ -136,41 +181,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       />
 
       {/* ========================================================= */}
-      {/* 2. FRIENDLY GREETING HEADER                               */}
-      {/* ========================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#174D35] tracking-tight flex items-center gap-2">
-            <span>Good morning, Afkar</span>
-            <span className="inline-block animate-wiggle">👋</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-[#77857C] mt-1 font-medium">
-            Everything in your lab, organized in one place.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenAddItem}
-            className="px-4 py-2.5 rounded-2xl bg-[#168653] hover:bg-[#126b42] text-white text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md shadow-[#168653]/15 transition-all cursor-pointer active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Item</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ========================================================= */}
-      {/* 3. FOUR COMPACT WHITE STATISTIC CARDS                     */}
+      {/* 3. FOUR PASTEL STATISTIC CARDS (SUPER.MONEY-INSPIRED)     */}
       {/* ========================================================= */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        {/* Card 1: Total Inventory Value */}
-        <div className="bg-white border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 1: Total Inventory Value (Soft Mint) */}
+        <div className="bg-gradient-to-br from-white via-white to-[#B9F2D0]/20 border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-semibold text-[#77857C] uppercase tracking-wider">
               Total Inventory Value
             </span>
-            <div className="w-9 h-9 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center shrink-0 border border-[#CDE3D2]">
+            <div className="w-9 h-9 rounded-2xl bg-[#B9F2D0]/40 text-[#168653] flex items-center justify-center shrink-0 border border-[#B9F2D0]/60">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
@@ -184,13 +204,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Card 2: Registered Items */}
-        <div className="bg-white border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 2: Registered Items (Soft Lavender) */}
+        <div className="bg-gradient-to-br from-white via-white to-[#E9DFFF]/25 border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-semibold text-[#77857C] uppercase tracking-wider">
               Registered Items
             </span>
-            <div className="w-9 h-9 rounded-2xl bg-[#F0F9F2] text-[#168653] flex items-center justify-center shrink-0 border border-[#CDE3D2]">
+            <div className="w-9 h-9 rounded-2xl bg-[#E9DFFF]/60 text-[#6B46C1] flex items-center justify-center shrink-0 border border-[#E9DFFF]">
               <Boxes className="w-4 h-4" />
             </div>
           </div>
@@ -204,13 +224,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Card 3: Physical Stock Units */}
-        <div className="bg-white border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 3: Physical Stock Units (Soft Sky Blue) */}
+        <div className="bg-gradient-to-br from-white via-white to-[#DDEBFF]/30 border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-semibold text-[#77857C] uppercase tracking-wider">
               Physical Stock Units
             </span>
-            <div className="w-9 h-9 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center shrink-0 border border-[#CDE3D2]">
+            <div className="w-9 h-9 rounded-2xl bg-[#DDEBFF]/70 text-[#2563EB] flex items-center justify-center shrink-0 border border-[#DDEBFF]">
               <Layers className="w-4 h-4" />
             </div>
           </div>
@@ -224,13 +244,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Card 4: Active Projects */}
-        <div className="bg-white border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+        {/* Card 4: Active Projects (Soft Blush) */}
+        <div className="bg-gradient-to-br from-white via-white to-[#FFE3EF]/30 border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-semibold text-[#77857C] uppercase tracking-wider">
               Active Projects
             </span>
-            <div className="w-9 h-9 rounded-2xl bg-[#F0F9F2] text-[#168653] flex items-center justify-center shrink-0 border border-[#CDE3D2]">
+            <div className="w-9 h-9 rounded-2xl bg-[#FFE3EF]/70 text-[#D946EF] flex items-center justify-center shrink-0 border border-[#FFE3EF]">
               <FolderGit2 className="w-4 h-4" />
             </div>
           </div>
@@ -246,7 +266,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* 4. QUICK ACTIONS (FINTECH SHORTCUT TILES)                 */}
+      {/* 4. QUICK ACTIONS (SUPER.MONEY PASTEL TILES)               */}
       {/* ========================================================= */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -260,9 +280,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Tile 1: ADD ITEM */}
           <button
             onClick={onOpenAddItem}
-            className="group bg-white border border-[#E6EDE7] hover:border-[#168653]/40 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
+            className="group bg-white hover:bg-gradient-to-br hover:from-white hover:to-[#B9F2D0]/15 border border-[#E6EDE7] hover:border-[#168653]/30 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#CDE3D2]">
+            <div className="w-10 h-10 rounded-2xl bg-[#B9F2D0]/40 text-[#168653] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#B9F2D0]/60">
               <Plus className="w-5 h-5" />
             </div>
             <div>
@@ -278,9 +298,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Tile 2: SCAN & LOOK UP */}
           <button
             onClick={onOpenScanner}
-            className="group bg-white border border-[#E6EDE7] hover:border-[#168653]/40 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
+            className="group bg-white hover:bg-gradient-to-br hover:from-white hover:to-[#DDEBFF]/15 border border-[#E6EDE7] hover:border-[#2563EB]/30 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#CDE3D2]">
+            <div className="w-10 h-10 rounded-2xl bg-[#DDEBFF]/60 text-[#2563EB] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#DDEBFF]">
               <ScanLine className="w-5 h-5" />
             </div>
             <div>
@@ -296,9 +316,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Tile 3: GENERATE LABELS */}
           <button
             onClick={() => onOpenLabels()}
-            className="group bg-white border border-[#E6EDE7] hover:border-[#168653]/40 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
+            className="group bg-white hover:bg-gradient-to-br hover:from-white hover:to-[#E9DFFF]/15 border border-[#E6EDE7] hover:border-[#6B46C1]/30 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#CDE3D2]">
+            <div className="w-10 h-10 rounded-2xl bg-[#E9DFFF]/60 text-[#6B46C1] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#E9DFFF]">
               <Tag className="w-5 h-5" />
             </div>
             <div>
@@ -314,9 +334,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Tile 4: ASK AI */}
           <button
             onClick={onOpenAiAssistant || onOpenAiAddItem}
-            className="group bg-white border border-[#E6EDE7] hover:border-[#168653]/40 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
+            className="group bg-white hover:bg-gradient-to-br hover:from-white hover:to-[#FFE3EF]/15 border border-[#E6EDE7] hover:border-[#D946EF]/30 rounded-3xl p-4 sm:p-5 text-left transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#CDE3D2]">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFE3EF]/60 text-[#D946EF] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform border border-[#FFE3EF]">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>

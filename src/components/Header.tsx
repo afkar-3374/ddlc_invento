@@ -10,16 +10,19 @@ import {
   Bell,
   User,
   ExternalLink,
+  Download,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { formatINR } from '../services/dbService';
 import { Product } from '../types';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
   onOpenAi: () => void;
   onOpenScanner: () => void;
   onOpenAddItem: () => void;
+  onOpenInstall?: () => void;
   onSelectItem?: (product: Product) => void;
 }
 
@@ -28,8 +31,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAi,
   onOpenScanner,
   onOpenAddItem,
+  onOpenInstall,
   onSelectItem,
 }) => {
+  const { isInstalled } = usePWAInstall();
   const { products } = useInventory();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -149,6 +154,18 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Zone 3: Notification & Profile Control */}
       <div className="flex items-center gap-2.5">
+        {/* PWA Install / Download App Button */}
+        {!isInstalled && onOpenInstall && (
+          <button
+            onClick={onOpenInstall}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#168653] to-[#126E43] hover:from-[#126E43] hover:to-[#0E5434] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95"
+            title="Download / Install DDLC AI App"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Install App</span>
+          </button>
+        )}
+
         {/* Quick Header Scan Button */}
         <button
           onClick={onOpenScanner}

@@ -130,7 +130,17 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
     setCameraError(null);
 
     try {
-      // Check browser environment support
+      // 1. Guard against non-secure context or missing mediaDevices API
+      if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost') {
+        setCameraError(
+          'Live camera access requires HTTPS. Scanner is operating in USB barcode reader & manual SKU mode.'
+        );
+        setIsScanning(false);
+        setScannerInitializing(false);
+        isInitializingRef.current = false;
+        return;
+      }
+
       if (
         typeof navigator === 'undefined' ||
         !navigator.mediaDevices ||
@@ -145,21 +155,56 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
         return;
       }
 
+      // 2. Check permission query if available
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const perm = await navigator.permissions.query({ name: 'camera' as any });
+          if (perm.state === 'denied') {
+            setCameraError(
+              'Camera permission blocked in browser. Click the lock / settings icon 🔒 in the URL bar to allow camera access, or use the USB / manual input below.'
+            );
+            setIsScanning(false);
+            setScannerInitializing(false);
+            isInitializingRef.current = false;
+            return;
+          }
+        } catch {
+          // Non-critical
+        }
+      }
+
       // Stop previous instance if active
       stopCameraStream();
 
       // Configure video constraints preferring rear/environment camera on phones
-      const constraints: MediaStreamConstraints = {
-        video: deviceIdToUse
-          ? { deviceId: { exact: deviceIdToUse } }
-          : {
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 640 },
-              height: { ideal: 480 },
-            },
-      };
+      let stream: MediaStream | null = null;
+      try {
+        const constraints: MediaStreamConstraints = {
+          video: deviceIdToUse
+            ? { deviceId: { exact: deviceIdToUse } }
+            : {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+              },
+          audio: false,
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (firstErr: any) {
+        // Fallback: If deviceId exact constraint failed, try basic facingMode or simple video
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (!stream) {
+        throw new Error('Unable to obtain camera stream');
+      }
 
       if (!isMountedRef.current) {
         stream.getTracks().forEach((t) => t.stop());
@@ -183,6 +228,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
       }
 
       if (!videoRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
         throw new Error('Video element not yet mounted in DOM');
       }
 
@@ -227,7 +273,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
         errMsg.includes('not allowed')
       ) {
         setCameraError(
-          'Camera access was denied. You can allow camera in browser site settings, or immediately scan via USB barcode reader / manual SKU below.'
+          'Camera access was denied or blocked. You can allow camera in browser site settings (lock icon 🔒), or immediately scan via USB barcode reader / manual SKU below.'
         );
       } else if (
         errName === 'NotFoundError' ||
@@ -235,11 +281,19 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
         errMsg.includes('not found')
       ) {
         setCameraError(
-          'No camera device detected. USB barcode scanners and manual SKU lookup are ready.'
+          'No camera device detected on this system. USB barcode scanners and manual SKU lookup are ready.'
+        );
+      } else if (
+        errName === 'NotReadableError' ||
+        errName === 'TrackStartError' ||
+        errMsg.includes('already in use')
+      ) {
+        setCameraError(
+          'Camera is in use by another application. Please close it and click Retry Camera Feed.'
         );
       } else {
         setCameraError(
-          'Camera initialization paused. You can use the manual SKU / USB scanner below or click Retry Camera.'
+          'Camera initialization paused. You can use the manual SKU / USB scanner below or click Retry Camera Feed.'
         );
       }
       setIsScanning(false);
@@ -332,8 +386,55 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
     ? purchases.filter((po) => po.productId === matchedProduct.id)
     : [];
 
+  // Global USB Barcode Scanner hardware listener
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = 0;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // If user is actively typing in a form input, textarea or select, allow standard typing
+      const activeEl = document.activeElement;
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT');
+
+      const currentTime = Date.now();
+
+      if (e.key === 'Enter') {
+        if (buffer.length >= 3 && currentTime - lastKeyTime < 300) {
+          const scanned = buffer.trim();
+          buffer = '';
+          playBeep();
+          performLookup(scanned);
+        }
+        buffer = '';
+        return;
+      }
+
+      // Barcode scanners type single printable characters rapidly (< 75ms between strokes)
+      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (isInput && activeEl !== manualInputRef.current) {
+          // User is typing in another input, do not capture
+          return;
+        }
+
+        if (currentTime - lastKeyTime > 150) {
+          buffer = e.key;
+        } else {
+          buffer += e.key;
+        }
+        lastKeyTime = currentTime;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [products]);
+
   return (
-    <div className="bg-white border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs space-y-4">
+    <div className="bg-gradient-to-br from-[#E9DFFF]/40 via-white to-[#B9F2D0]/35 border border-[#E6EDE7] rounded-3xl p-4 sm:p-5 shadow-xs space-y-4 relative">
       {/* Top Bar of the Scanner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E6EDE7]">
         <div className="flex items-center gap-2.5">
@@ -346,19 +447,19 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
                 Always-Ready Barcode Scanner
               </h2>
               {isScanning ? (
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#E5F5E9] text-[#168653] border border-[#CDE3D2]">
+                <span className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#168653]/10 text-[#168653] border border-[#168653]/25 shadow-2xs">
                   <span className="w-2 h-2 rounded-full bg-[#168653] animate-pulse" />
-                  Live Detection
+                  Scanner ready
                 </span>
               ) : (
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#F5F9F6] text-[#77857C] border border-[#E6EDE7]">
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/90 text-[#77857C] border border-[#E6EDE7]">
                   <span className="w-2 h-2 rounded-full bg-[#77857C]" />
-                  USB & Manual Mode
+                  Manual & USB Ready
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-[#77857C] font-medium mt-0.5">
-              Code 128 • EAN-13 • QR • Automatic USB Barcode Reader & Live Camera
+            <p className="text-[11px] text-[#54655B] font-medium mt-0.5">
+              Scan a label to discover its details. Live camera & USB scanner active.
             </p>
           </div>
         </div>

@@ -27,6 +27,32 @@ export function formatINR(val: number | undefined | null): string {
 }
 
 /**
+ * Recursively cleans objects to remove any keys with `undefined` values,
+ * ensuring Firestore `setDoc`, `updateDoc`, and transactions never throw
+ * "Unsupported field value: undefined".
+ */
+export function cleanFirestoreData<T extends Record<string, any>>(obj: T): T {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => cleanFirestoreData(item)) as any;
+  }
+  const cleaned: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined) {
+      continue;
+    }
+    if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+      cleaned[key] = cleanFirestoreData(val);
+    } else {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned as T;
+}
+
+/**
  * Concurrency-safe unique SKU generator using a Firestore transaction
  */
 export async function generateUniqueSKU(categoryCode: string = 'GEN'): Promise<string> {
@@ -117,14 +143,14 @@ export async function logAuditEvent(action: string, entityType: string, entityId
   try {
     const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const logRef = doc(db, 'auditLogs', logId);
-    await setDoc(logRef, {
+    await setDoc(logRef, cleanFirestoreData({
       action,
       entityType,
       entityId,
       details,
       userId: 'DDLC Operator',
       timestamp: new Date().toISOString(),
-    });
+    }));
   } catch (e) {
     console.warn('Audit log write error:', e);
   }
@@ -158,11 +184,20 @@ export async function createProduct(
     itemNumber,
     sku,
     barcode,
+    name: productData.name?.trim() || 'Electronic Component',
+    category: productData.category?.trim() || 'General',
+    description: productData.description || '',
     quantity,
+    unit: productData.unit || 'pcs',
     unitPrice,
     gstPercent: 0,
     gstAmount: 0,
     totalCost,
+    vendor: productData.vendor || '',
+    purchaseDate: productData.purchaseDate || now.slice(0, 10),
+    projectId: productData.projectId || '',
+    storageLocation: productData.storageLocation || 'Main Lab',
+    notes: productData.notes || '',
     archived: productData.archived ?? false,
     createdAt: now,
     updatedAt: now,
@@ -170,7 +205,7 @@ export async function createProduct(
 
   try {
     // 2. Write Product to Firestore
-    await setDoc(doc(db, 'products', id), product);
+    await setDoc(doc(db, 'products', id), cleanFirestoreData(product));
     await logAuditEvent('CREATE_PRODUCT', 'Product', id, `Created item #${itemNumber} ${product.name} (SKU: ${sku})`);
 
     // 3. EVERY ADD AUTOMATICALLY MARKS AS PURCHASE with total cost added!
@@ -199,12 +234,13 @@ export async function createProduct(
       createdAt: now,
     };
 
-    await setDoc(doc(db, 'purchases', purchaseId), purchase);
+    await setDoc(doc(db, 'purchases', purchaseId), cleanFirestoreData(purchase));
     await logAuditEvent('AUTO_PURCHASE', 'Purchase', purchaseId, `Auto-recorded purchase for #${itemNumber} ${product.name} (Total: ₹${totalCost})`);
 
     return product;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `products/${id}`);
+    throw error;
   }
 }
 
@@ -214,14 +250,15 @@ export async function createProduct(
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<void> {
   try {
     const prodRef = doc(db, 'products', id);
-    const updatedPayload = {
+    const updatedPayload = cleanFirestoreData({
       ...updates,
       updatedAt: new Date().toISOString(),
-    };
+    });
     await updateDoc(prodRef, updatedPayload);
     await logAuditEvent('UPDATE_PRODUCT', 'Product', id, `Updated fields: ${Object.keys(updates).join(', ')}`);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
+    throw error;
   }
 }
 
@@ -289,22 +326,53 @@ export async function toggleArchiveProduct(id: string, currentArchived: boolean)
 /**
  * Create a new Project
  */
-export async function createProject(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+export async function createProject(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> | Record<string, any>): Promise<Project> {
   const id = `proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const now = new Date().toISOString();
+
+  const raw = (projectData || {}) as Record<string, any>;
+  const resolvedName = (
+    typeof raw.name === 'string' && raw.name.trim()
+      ? raw.name.trim()
+      : typeof raw.projectName === 'string' && raw.projectName.trim()
+      ? raw.projectName.trim()
+      : typeof raw.title === 'string' && raw.title.trim()
+      ? raw.title.trim()
+      : typeof raw.project === 'string' && raw.project.trim()
+      ? raw.project.trim()
+      : typeof raw.code === 'string' && raw.code.trim()
+      ? raw.code.trim()
+      : 'Engineering Project'
+  );
+
+  const resolvedCode = (
+    typeof raw.code === 'string' && raw.code.trim()
+      ? raw.code.trim().toUpperCase()
+      : resolvedName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'PRJ'
+  );
+
+  const validStatuses: Project['status'][] = ['Planning', 'Active', 'Beta', 'Completed', 'Archived'];
+  const resolvedStatus = validStatuses.includes(raw.status) ? raw.status : 'Active';
+
   const project: Project = {
-    ...projectData,
     id,
+    name: resolvedName,
+    code: resolvedCode,
+    description: typeof raw.description === 'string' ? raw.description : '',
+    status: resolvedStatus,
+    startDate: typeof raw.startDate === 'string' && raw.startDate.trim() ? raw.startDate : now.slice(0, 10),
+    notes: typeof raw.notes === 'string' ? raw.notes : '',
     createdAt: now,
     updatedAt: now,
   };
 
   try {
-    await setDoc(doc(db, 'projects', id), project);
+    await setDoc(doc(db, 'projects', id), cleanFirestoreData(project));
     await logAuditEvent('CREATE_PROJECT', 'Project', id, `Created project ${project.name} (${project.code})`);
     return project;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `projects/${id}`);
+    throw error;
   }
 }
 
@@ -313,13 +381,15 @@ export async function createProject(projectData: Omit<Project, 'id' | 'createdAt
  */
 export async function updateProject(id: string, updates: Partial<Project>): Promise<void> {
   try {
-    await updateDoc(doc(db, 'projects', id), {
+    const payload = cleanFirestoreData({
       ...updates,
       updatedAt: new Date().toISOString(),
     });
+    await updateDoc(doc(db, 'projects', id), payload);
     await logAuditEvent('UPDATE_PROJECT', 'Project', id, `Updated project fields`);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `projects/${id}`);
+    throw error;
   }
 }
 
@@ -386,13 +456,13 @@ export async function recordPurchase(
           createdAt: now,
           updatedAt: now,
         };
-        tx.set(productRef, prodData);
+        tx.set(productRef, cleanFirestoreData(prodData));
         purchase.productId = newProdId;
       }
 
       // 2. Save immutable purchase document
       const purchaseRef = doc(db, 'purchases', purchaseId);
-      tx.set(purchaseRef, purchase);
+      tx.set(purchaseRef, cleanFirestoreData(purchase));
 
       // 3. Create stock movement audit record
       const movementId = `sm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -410,7 +480,7 @@ export async function recordPurchase(
         createdBy: 'DDLC Operator',
         createdAt: now,
       };
-      tx.set(movementRef, movement);
+      tx.set(movementRef, cleanFirestoreData(movement));
     });
 
     await logAuditEvent(
@@ -423,6 +493,7 @@ export async function recordPurchase(
     return purchase;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `purchases/${purchaseId}`);
+    throw error;
   }
 }
 
@@ -433,16 +504,18 @@ export async function createVendor(vendorData: Omit<Vendor, 'id' | 'createdAt'>)
   const id = `vnd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const vendor: Vendor = {
     ...vendorData,
+    name: vendorData.name?.trim() || 'Vendor',
     id,
     createdAt: new Date().toISOString(),
   };
 
   try {
-    await setDoc(doc(db, 'vendors', id), vendor);
+    await setDoc(doc(db, 'vendors', id), cleanFirestoreData(vendor));
     await logAuditEvent('CREATE_VENDOR', 'Vendor', id, `Added supplier ${vendor.name}`);
     return vendor;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `vendors/${id}`);
+    throw error;
   }
 }
 
@@ -453,15 +526,17 @@ export async function createCategory(catData: Omit<Category, 'id' | 'createdAt'>
   const id = `cat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const cat: Category = {
     ...catData,
+    name: catData.name?.trim() || 'Category',
     id,
     createdAt: new Date().toISOString(),
   };
 
   try {
-    await setDoc(doc(db, 'categories', id), cat);
+    await setDoc(doc(db, 'categories', id), cleanFirestoreData(cat));
     return cat;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `categories/${id}`);
+    throw error;
   }
 }
 

@@ -11,8 +11,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  Download,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 
 export type NavTab =
   | 'dashboard'
@@ -33,6 +35,7 @@ interface SidebarProps {
   isMobileOpen: boolean;
   setIsMobileOpen: (open: boolean) => void;
   onOpenScanner?: () => void;
+  onOpenInstall?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -42,8 +45,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCollapsed,
   isMobileOpen,
   setIsMobileOpen,
+  onOpenInstall,
 }) => {
   const { products, projects, purchases, vendors } = useInventory();
+  const { isInstalled } = usePWAInstall();
 
   // Desktop sidebar items as explicitly required:
   // 1. Dashboard, 2. Inventory, 3. Projects, 4. Purchases, 5. Reports, 6. Settings
@@ -235,6 +240,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               );
             })}
+
+            {/* Install PWA App Button in Sidebar */}
+            {!isInstalled && onOpenInstall && (
+              <button
+                onClick={() => {
+                  onOpenInstall();
+                  setIsMobileOpen(false);
+                }}
+                className={`w-full mt-2 flex items-center gap-3 px-3.5 py-2 rounded-2xl text-xs font-semibold transition-all group relative cursor-pointer bg-[#F0F9F2] text-[#168653] hover:bg-[#E5F5E9] border border-[#CDE3D2] ${
+                  collapsed ? 'justify-center px-0' : ''
+                }`}
+                title={collapsed ? 'Download / Install App' : undefined}
+              >
+                <Download className="w-4 h-4 text-[#168653] shrink-0" />
+                {!collapsed && (
+                  <div className="flex-1 text-left flex items-center justify-between">
+                    <span>Install App</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#168653] text-white font-bold">
+                      PWA
+                    </span>
+                  </div>
+                )}
+              </button>
+            )}
           </div>
         </div>
 

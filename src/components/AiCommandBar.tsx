@@ -260,9 +260,10 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
     }
 
     if (type === 'CREATE_PROJECT') {
+      const projName = payload.name || payload.projectName || payload.title || payload.project || 'Engineering Project';
       const createdProj = await addProject({
-        name: payload.name,
-        code: payload.code || (payload.name || 'PRJ').slice(0, 4).toUpperCase(),
+        name: projName,
+        code: payload.code || (projName || 'PRJ').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'PRJ',
         description: payload.description || '',
         status: payload.status || 'Active',
         startDate: payload.startDate || new Date().toISOString().slice(0, 10),

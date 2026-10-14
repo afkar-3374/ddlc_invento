@@ -32,6 +32,7 @@ import { ProjectModal } from './components/ProjectModal';
 import { StockAdjustModal } from './components/StockAdjustModal';
 import { ItemDetailsModal } from './components/ItemDetailsModal';
 import { AiAddItemModal } from './components/AiAddItemModal';
+import { PWAInstallModal } from './components/PWAInstallModal';
 import { Product, Project } from './types';
 
 function AppContent() {
@@ -66,6 +67,7 @@ function AppContent() {
   const [labelsModalOptions, setLabelsModalOptions] = useState<
     { startSku?: string; endSku?: string; productId?: string; projectId?: string } | undefined
   >(undefined);
+  const [isPwaModalForced, setIsPwaModalForced] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#F5F9F6] text-[#25352C] flex flex-col antialiased selection:bg-[#168653]/15 selection:text-[#174D35]">
@@ -78,6 +80,7 @@ function AppContent() {
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         onOpenScanner={() => setCurrentTab('scanner')}
+        onOpenInstall={() => setIsPwaModalForced(true)}
       />
 
       {/* Main View Area */}
@@ -91,6 +94,7 @@ function AppContent() {
           onOpenMobileMenu={() => setIsMobileOpen(true)}
           onOpenAi={() => setIsAiDrawerOpen(true)}
           onOpenScanner={() => setCurrentTab('scanner')}
+          onOpenInstall={() => setIsPwaModalForced(true)}
           onOpenAddItem={() => {
             setProductToEdit(null);
             setItemModalInitialSku(undefined);
@@ -504,6 +508,12 @@ function AppContent() {
         }}
         onNavigateToProject={() => setCurrentTab('projects')}
         onNavigateToPurchases={() => setCurrentTab('purchases')}
+      />
+
+      {/* PWA Download / Installation Popup on First Use or Trigger */}
+      <PWAInstallModal
+        forceOpen={isPwaModalForced}
+        onClose={() => setIsPwaModalForced(false)}
       />
     </div>
   );
