@@ -20,6 +20,29 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
+      // Suppress Vite HMR WebSocket closed notices in iframe/container environment
+      (function() {
+        var _origError = console.error;
+        console.error = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            var arg = arguments[i];
+            if (
+              (typeof arg === 'string' && arg.indexOf('WebSocket closed without opened') !== -1) ||
+              (arg && arg.message && typeof arg.message === 'string' && arg.message.indexOf('WebSocket closed without opened') !== -1)
+            ) {
+              return;
+            }
+          }
+          return _origError.apply(console, arguments);
+        };
+        window.addEventListener('error', function(e) {
+          if (e && e.message && e.message.indexOf('WebSocket closed without opened') !== -1) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+
       // Ensure trailing slash on GitHub Pages directory URLs so relative assets (./assets/...) resolve correctly
       if (window.location.pathname.length > 1 && !window.location.pathname.endsWith('/') && !window.location.pathname.includes('.')) {
         window.location.replace(window.location.pathname + '/' + window.location.search + window.location.hash);
