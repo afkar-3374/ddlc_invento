@@ -1,9 +1,30 @@
 import React, { useState } from 'react';
+import {
+  LayoutDashboard,
+  Boxes,
+  FolderGit2,
+  Receipt,
+  FileSpreadsheet,
+  Settings,
+  ScanLine,
+  Users,
+  MoreHorizontal,
+  X,
+  Sparkles,
+  Building2,
+} from 'lucide-react';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
+import { InventoryView } from './components/InventoryView';
+import { ProjectsView } from './components/ProjectsView';
+import { PurchasesView } from './components/PurchasesView';
+import { ReportsView } from './components/ReportsView';
+import { VendorsView } from './components/VendorsView';
 import { SettingsView } from './components/SettingsView';
+import { BarcodeScannerView } from './components/BarcodeScannerView';
+import { AiAssistantView } from './components/AiAssistantView';
 import { GenerateLabelsModal } from './components/GenerateLabelsModal';
 import { ItemModal } from './components/ItemModal';
 import { PurchaseModal } from './components/PurchaseModal';
@@ -14,12 +35,14 @@ import { AiAddItemModal } from './components/AiAddItemModal';
 import { Product, Project } from './types';
 
 function AppContent() {
-  const { dbError } = useInventory();
+  const { dbError, products } = useInventory();
 
-  // Primary Navigation: Dashboard & Settings
+  // Navigation tab state
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
 
   // Modal states
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
@@ -45,8 +68,8 @@ function AppContent() {
   >(undefined);
 
   return (
-    <div className="min-h-screen bg-[#090B0C] text-[#EDEDED] flex">
-      {/* Sidebar: Dashboard & Settings */}
+    <div className="min-h-screen bg-[#F5F9F6] text-[#25352C] flex flex-col antialiased selection:bg-[#168653]/15 selection:text-[#174D35]">
+      {/* Desktop Left Sidebar */}
       <Sidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -54,29 +77,41 @@ function AppContent() {
         setCollapsed={setCollapsed}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
+        onOpenScanner={() => setCurrentTab('scanner')}
       />
 
-      {/* Main Content Area */}
+      {/* Main View Area */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-200 pb-20 lg:pb-6 ${
           collapsed ? 'lg:pl-18' : 'lg:pl-64'
         }`}
       >
-        {/* Header Telemetry Bar */}
+        {/* Global Mint Header */}
         <Header
           onOpenMobileMenu={() => setIsMobileOpen(true)}
-          onOpenAi={() => setCurrentTab('dashboard')}
+          onOpenAi={() => setIsAiDrawerOpen(true)}
+          onOpenScanner={() => setCurrentTab('scanner')}
+          onOpenAddItem={() => {
+            setProductToEdit(null);
+            setItemModalInitialSku(undefined);
+            setIsItemModalOpen(true);
+          }}
+          onSelectItem={(p) => {
+            setDetailsProduct(p);
+            setIsDetailsModalOpen(true);
+          }}
         />
 
-        {/* Database notification warning if any */}
+        {/* Database Warning notification if any */}
         {dbError && (
-          <div className="bg-amber-950/40 border-b border-amber-600/30 px-6 py-2 text-xs font-mono text-amber-300">
+          <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 text-xs font-mono text-amber-800">
             {dbError}
           </div>
         )}
 
-        {/* Active View Container */}
+        {/* Dynamic Route View Container */}
         <main className="flex-1 p-4 lg:p-6 max-w-7xl w-full mx-auto">
+          {/* 1. DASHBOARD WITH ALWAYS-READY SCANNER */}
           {currentTab === 'dashboard' && (
             <DashboardView
               onOpenAddItem={() => {
@@ -93,13 +128,316 @@ function AppContent() {
                 setDetailsProduct(p);
                 setIsDetailsModalOpen(true);
               }}
+              onEditItem={(p) => {
+                setProductToEdit(p);
+                setIsItemModalOpen(true);
+              }}
+              onAdjustStock={(p) => {
+                setStockAdjustProduct(p);
+                setIsStockAdjustModalOpen(true);
+              }}
+              onOpenAddItemWithSku={(sku) => {
+                setProductToEdit(null);
+                setItemModalInitialSku(sku);
+                setIsItemModalOpen(true);
+              }}
               onNavigateToSettings={() => setCurrentTab('settings')}
+              onOpenScanner={() => setCurrentTab('scanner')}
+              onNavigateToInventory={() => setCurrentTab('inventory')}
+              onNavigateToProjects={() => setCurrentTab('projects')}
+              onOpenAiAssistant={() => setIsAiDrawerOpen(true)}
             />
           )}
 
+          {/* 2. INVENTORY */}
+          {currentTab === 'inventory' && (
+            <InventoryView
+              onOpenAddItem={() => {
+                setProductToEdit(null);
+                setItemModalInitialSku(undefined);
+                setIsItemModalOpen(true);
+              }}
+              onOpenAiAddItem={() => setIsAiAddItemModalOpen(true)}
+              onEditItem={(p) => {
+                setProductToEdit(p);
+                setIsItemModalOpen(true);
+              }}
+              onAdjustStock={(p) => {
+                setStockAdjustProduct(p);
+                setIsStockAdjustModalOpen(true);
+              }}
+              onViewItemDetails={(p) => {
+                setDetailsProduct(p);
+                setIsDetailsModalOpen(true);
+              }}
+              onOpenLabels={(p) => {
+                if (p) {
+                  setLabelsModalOptions({ productId: p.id, startSku: p.sku, endSku: p.sku });
+                } else {
+                  setLabelsModalOptions(undefined);
+                }
+                setIsLabelsModalOpen(true);
+              }}
+              onOpenScanner={() => setCurrentTab('scanner')}
+            />
+          )}
+
+          {/* 3. BARCODE SCANNER */}
+          {currentTab === 'scanner' && (
+            <BarcodeScannerView
+              onOpenItemDetails={(p) => {
+                setDetailsProduct(p);
+                setIsDetailsModalOpen(true);
+              }}
+              onOpenAddItemWithSku={(sku) => {
+                setProductToEdit(null);
+                setItemModalInitialSku(sku);
+                setIsItemModalOpen(true);
+              }}
+              onOpenEditItem={(p) => {
+                setProductToEdit(p);
+                setIsItemModalOpen(true);
+              }}
+              onOpenLabelsForProduct={(p) => {
+                setLabelsModalOptions({ productId: p.id, startSku: p.sku, endSku: p.sku });
+                setIsLabelsModalOpen(true);
+              }}
+              onNavigateToProjects={() => setCurrentTab('projects')}
+              onNavigateToPurchases={() => setCurrentTab('purchases')}
+            />
+          )}
+
+          {/* 4. PROJECTS */}
+          {currentTab === 'projects' && (
+            <ProjectsView
+              onOpenNewProject={() => {
+                setProjectToEdit(null);
+                setIsProjectModalOpen(true);
+              }}
+              onEditProject={(pr) => {
+                setProjectToEdit(pr);
+                setIsProjectModalOpen(true);
+              }}
+            />
+          )}
+
+          {/* 5. PURCHASES */}
+          {currentTab === 'purchases' && (
+            <PurchasesView
+              onOpenAddPurchase={() => {
+                setPurchaseDefaultProductId(undefined);
+                setIsPurchaseModalOpen(true);
+              }}
+            />
+          )}
+
+          {/* 6. VENDORS */}
+          {currentTab === 'vendors' && <VendorsView />}
+
+          {/* 7. REPORTS */}
+          {currentTab === 'reports' && <ReportsView />}
+
+          {/* 8. SETTINGS */}
           {currentTab === 'settings' && <SettingsView />}
+
+          {/* 9. AI ASSISTANT FULL VIEW */}
+          {currentTab === 'ai' && (
+            <AiAssistantView
+              onOpenItemDetails={(p) => {
+                setDetailsProduct(p);
+                setIsDetailsModalOpen(true);
+              }}
+              onOpenLabelsModal={(opts) => {
+                setLabelsModalOptions(opts);
+                setIsLabelsModalOpen(true);
+              }}
+            />
+          )}
         </main>
       </div>
+
+      {/* ========================================================= */}
+      {/* MOBILE BOTTOM NAVIGATION BAR                              */}
+      {/* ========================================================= */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E6EDE7] lg:hidden px-3 py-2 flex items-center justify-around shadow-lg">
+        {/* Home */}
+        <button
+          onClick={() => {
+            setCurrentTab('dashboard');
+            setIsMobileMoreOpen(false);
+          }}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl cursor-pointer transition-colors ${
+            currentTab === 'dashboard' ? 'text-[#168653] font-bold' : 'text-[#77857C]'
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="text-[10px] font-semibold">Home</span>
+        </button>
+
+        {/* Inventory */}
+        <button
+          onClick={() => {
+            setCurrentTab('inventory');
+            setIsMobileMoreOpen(false);
+          }}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl cursor-pointer relative transition-colors ${
+            currentTab === 'inventory' ? 'text-[#168653] font-bold' : 'text-[#77857C]'
+          }`}
+        >
+          <Boxes className="w-5 h-5" />
+          <span className="text-[10px] font-semibold">Inventory</span>
+          {products.length > 0 && (
+            <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-[#168653]" />
+          )}
+        </button>
+
+        {/* Central Prominent Scan Button */}
+        <button
+          onClick={() => {
+            setCurrentTab('scanner');
+            setIsMobileMoreOpen(false);
+          }}
+          className="relative -top-3 w-13 h-13 rounded-full bg-[#168653] hover:bg-[#126b42] text-white flex flex-col items-center justify-center shadow-lg shadow-[#168653]/25 active:scale-95 transition-all cursor-pointer border-4 border-[#F5F9F6]"
+          title="Scan Barcode"
+        >
+          <ScanLine className="w-6 h-6" />
+        </button>
+
+        {/* Projects */}
+        <button
+          onClick={() => {
+            setCurrentTab('projects');
+            setIsMobileMoreOpen(false);
+          }}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl cursor-pointer transition-colors ${
+            currentTab === 'projects' ? 'text-[#168653] font-bold' : 'text-[#77857C]'
+          }`}
+        >
+          <FolderGit2 className="w-5 h-5" />
+          <span className="text-[10px] font-semibold">Projects</span>
+        </button>
+
+        {/* More Menu */}
+        <button
+          onClick={() => setIsMobileMoreOpen(!isMobileMoreOpen)}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl cursor-pointer transition-colors ${
+            isMobileMoreOpen ||
+            currentTab === 'purchases' ||
+            currentTab === 'reports' ||
+            currentTab === 'settings' ||
+            currentTab === 'vendors'
+              ? 'text-[#168653] font-bold'
+              : 'text-[#77857C]'
+          }`}
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          <span className="text-[10px] font-semibold">More</span>
+        </button>
+      </nav>
+
+      {/* Mobile More Sheet */}
+      {isMobileMoreOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-2xs flex flex-col justify-end lg:hidden">
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsMobileMoreOpen(false)}
+          />
+          <div className="relative bg-white rounded-t-3xl border-t border-[#E6EDE7] p-5 shadow-2xl space-y-3 animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E6EDE7]">
+              <span className="font-bold text-sm text-[#174D35]">More Lab Features</span>
+              <button
+                onClick={() => setIsMobileMoreOpen(false)}
+                className="p-1 rounded-xl text-[#77857C] hover:bg-[#F5F9F6] hover:text-[#25352C]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <button
+                onClick={() => {
+                  setCurrentTab('purchases');
+                  setIsMobileMoreOpen(false);
+                }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-[#F5F9F6] hover:bg-[#E5F5E9] text-left text-xs font-semibold text-[#174D35] border border-[#E6EDE7] transition-colors"
+              >
+                <Receipt className="w-4 h-4 text-[#168653]" />
+                <span>Purchases</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentTab('reports');
+                  setIsMobileMoreOpen(false);
+                }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-[#F5F9F6] hover:bg-[#E5F5E9] text-left text-xs font-semibold text-[#174D35] border border-[#E6EDE7] transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-[#168653]" />
+                <span>Reports</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentTab('vendors');
+                  setIsMobileMoreOpen(false);
+                }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-[#F5F9F6] hover:bg-[#E5F5E9] text-left text-xs font-semibold text-[#174D35] border border-[#E6EDE7] transition-colors"
+              >
+                <Building2 className="w-4 h-4 text-[#168653]" />
+                <span>Suppliers</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileMoreOpen(false);
+                  setIsAiDrawerOpen(true);
+                }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-[#E5F5E9] hover:bg-[#d8eedd] text-left text-xs font-semibold text-[#168653] border border-[#CDE3D2] transition-colors"
+              >
+                <Sparkles className="w-4 h-4 text-[#168653]" />
+                <span>Ask DDLC AI</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentTab('settings');
+                  setIsMobileMoreOpen(false);
+                }}
+                className="col-span-2 flex items-center justify-center gap-2.5 p-3 rounded-2xl bg-[#F5F9F6] hover:bg-[#E5F5E9] text-center text-xs font-semibold text-[#174D35] border border-[#E6EDE7] transition-colors"
+              >
+                <Settings className="w-4 h-4 text-[#168653]" />
+                <span>System Settings</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* SLIDE-OVER AI ASSISTANT DRAWER (WITHOUT LEAVING DASHBOARD)*/}
+      {/* ========================================================= */}
+      {isAiDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-2xs transition-opacity"
+            onClick={() => setIsAiDrawerOpen(false)}
+          />
+          <div className="relative w-full max-w-lg md:max-w-xl bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200">
+            <AiAssistantView
+              isDrawer
+              onClose={() => setIsAiDrawerOpen(false)}
+              onOpenItemDetails={(p) => {
+                setDetailsProduct(p);
+                setIsDetailsModalOpen(true);
+              }}
+              onOpenLabelsModal={(opts) => {
+                setLabelsModalOptions(opts);
+                setIsLabelsModalOpen(true);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Global Modals */}
       <AiAddItemModal
@@ -164,8 +502,8 @@ function AppContent() {
           setLabelsModalOptions({ productId: p.id, startSku: p.sku, endSku: p.sku });
           setIsLabelsModalOpen(true);
         }}
-        onNavigateToProject={() => setCurrentTab('dashboard')}
-        onNavigateToPurchases={() => setCurrentTab('dashboard')}
+        onNavigateToProject={() => setCurrentTab('projects')}
+        onNavigateToPurchases={() => setCurrentTab('purchases')}
       />
     </div>
   );

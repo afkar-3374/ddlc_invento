@@ -1,6 +1,6 @@
 {
   "name": "DDLC AI",
-  "description": "DDLC AI Inventory & Project Management System with hardware instrument dark aesthetic, real-time Firestore tracking, and Gemini AI assistant.",
+  "description": "DDLC AI Inventory & Project Management System with clean modern mint-green fintech UI, real-time Firestore tracking, and Gemini AI assistant.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

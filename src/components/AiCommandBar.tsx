@@ -90,7 +90,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
 
       setStatusMessage({
         type: 'success',
-        text: `⚡ Added #${created.itemNumber || ''} ${created.name} (${created.quantity} pcs @ ${formatINR(created.unitPrice)}) • Total Cost: ${formatINR(created.totalCost)} (Marked as Purchase)`,
+        text: `✨ Added "${created.name}"! Assigned SKU: ${created.sku} (${created.quantity} pcs @ ${formatINR(created.unitPrice)}) • Saved to Cloud Firestore!`,
       });
     } catch (err: any) {
       let errTxt = err?.message || 'Failed to add item.';
@@ -136,7 +136,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
 
       setStatusMessage({
         type: 'success',
-        text: `⚡ Added #${created.itemNumber || ''} ${created.name} (${created.quantity} pcs @ ${formatINR(created.unitPrice)}) • Total Cost: ${formatINR(created.totalCost)} (Marked as Purchase)`,
+        text: `✨ Added "${created.name}"! Assigned SKU: ${created.sku} (${created.quantity} pcs @ ${formatINR(created.unitPrice)}) • Saved to Cloud Firestore!`,
       });
       setDirectName('');
       setDirectPrice('');
@@ -203,7 +203,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
         notes: payload.notes || '',
         archived: false,
       });
-      return `Added #${created.itemNumber || ''} ${created.name} (${created.quantity} ${created.unit} @ ${formatINR(created.unitPrice)}) • Total Cost: ${formatINR(created.totalCost)} (Marked as Purchase)`;
+      return `✨ Added "${created.name}"! Assigned SKU: ${created.sku} (${created.quantity} ${created.unit} @ ${formatINR(created.unitPrice)}) • Total Cost: ${formatINR(created.totalCost)} (Saved to Cloud Firestore)`;
     }
 
     if (type === 'BATCH_ADD_PRODUCTS') {
@@ -554,17 +554,17 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
   };
 
   return (
-    <div className="bg-[#101418] border border-[#1C242C] rounded-2xl p-4 shadow-xl space-y-3">
+    <div className="bg-white border border-[#E6EDE7] rounded-3xl p-4 shadow-xs space-y-3 font-sans">
       {/* Mode Switch Tabs & Info Header */}
-      <div className="flex items-center justify-between border-b border-[#1A2228] pb-2.5">
+      <div className="flex items-center justify-between border-b border-[#F0F5F2] pb-2.5">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setMode('ai')}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               mode === 'ai'
-                ? 'bg-[#152319] text-[#00FF66] border border-[#00FF66]/40 shadow-[0_0_8px_rgba(0,255,102,0.15)]'
-                : 'text-gray-400 hover:text-white border border-transparent'
+                ? 'bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2]'
+                : 'text-[#77857C] hover:text-[#174D35] border border-transparent'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -574,10 +574,10 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
           <button
             type="button"
             onClick={() => setMode('direct')}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               mode === 'direct'
-                ? 'bg-[#152319] text-[#00FF66] border border-[#00FF66]/40 shadow-[0_0_8px_rgba(0,255,102,0.15)]'
-                : 'text-gray-400 hover:text-white border border-transparent'
+                ? 'bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2]'
+                : 'text-[#77857C] hover:text-[#174D35] border border-transparent'
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
@@ -585,30 +585,30 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
           </button>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-gray-500">
-          <span className="w-2 h-2 rounded-full bg-[#00FF66] neon-dot" />
-          <span>AUTONOMOUS DIRECT EXECUTION</span>
+        <div className="hidden sm:flex items-center gap-2 text-[11px] text-[#77857C]">
+          <span className="w-2 h-2 rounded-full bg-[#168653]" />
+          <span>Direct Firestore Execution</span>
         </div>
       </div>
 
       {/* Mode A: Natural Language AI Command Bar */}
       {mode === 'ai' && (
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <div className="flex-1 relative flex items-center bg-[#141A1F] border border-[#232D35] focus-within:border-[#00FF66] rounded-xl px-3.5 py-2.5 transition-colors">
-            <Sparkles className="w-4 h-4 text-[#00FF66] shrink-0 mr-2.5" />
+          <div className="flex-1 relative flex items-center bg-[#F5F9F6] border border-[#E6EDE7] focus-within:border-[#168653] focus-within:bg-white rounded-2xl px-3.5 py-2.5 transition-colors">
+            <Sparkles className="w-4 h-4 text-[#168653] shrink-0 mr-2.5" />
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={placeholder}
               disabled={loading}
-              className="w-full bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none font-sans"
+              className="w-full bg-transparent text-xs text-[#25352C] placeholder-[#77857C] focus:outline-none font-sans"
             />
             {input && (
               <button
                 type="button"
                 onClick={() => setInput('')}
-                className="text-gray-500 hover:text-white text-xs px-1"
+                className="text-[#77857C] hover:text-[#25352C] text-xs px-1"
               >
                 ✕
               </button>
@@ -618,7 +618,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="px-4 py-2.5 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] disabled:opacity-40 disabled:cursor-not-allowed text-[#0A0D0F] font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(0,255,102,0.25)] shrink-0 cursor-pointer active:scale-95"
+            className="px-4 py-2.5 rounded-2xl bg-[#168653] hover:bg-[#126E43] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
           >
             {loading ? (
               <>
@@ -645,7 +645,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
               placeholder="Component Name (e.g. ESP32-S3)..."
               value={directName}
               onChange={(e) => setDirectName(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00FF66]"
+              className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] placeholder-[#77857C] focus:outline-none focus:border-[#168653] focus:bg-white"
             />
           </div>
 
@@ -656,7 +656,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
               placeholder="Qty"
               value={directQty}
               onChange={(e) => setDirectQty(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-white placeholder-gray-500 font-mono focus:outline-none focus:border-[#00FF66]"
+              className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] placeholder-[#77857C] font-semibold focus:outline-none focus:border-[#168653] focus:bg-white"
             />
           </div>
 
@@ -667,7 +667,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
               placeholder="Price ₹"
               value={directPrice}
               onChange={(e) => setDirectPrice(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-white placeholder-gray-500 font-mono focus:outline-none focus:border-[#00FF66]"
+              className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] placeholder-[#77857C] font-semibold focus:outline-none focus:border-[#168653] focus:bg-white"
             />
           </div>
 
@@ -675,7 +675,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
             <select
               value={directCategory}
               onChange={(e) => setDirectCategory(e.target.value)}
-              className="w-full px-2 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-gray-200 font-mono focus:outline-none focus:border-[#00FF66]"
+              className="w-full px-2 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
             >
               <option value="Microcontrollers">MCU</option>
               <option value="Computing">Computing</option>
@@ -690,7 +690,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
             <button
               type="submit"
               disabled={loading || !directName.trim()}
-              className="w-full py-2 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] disabled:opacity-40 text-[#0A0D0F] font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-[0_0_12px_rgba(0,255,102,0.25)] cursor-pointer"
+              className="w-full py-2 rounded-xl bg-[#168653] hover:bg-[#126E43] disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
             >
               {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
               <span>Add Direct</span>
@@ -701,7 +701,7 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
 
       {/* 1-Click Hardware Quick Add Template Chips */}
       <div className="pt-1 flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] font-mono text-[#00FF66] uppercase tracking-wider font-semibold">
+        <span className="text-[10px] text-[#168653] uppercase tracking-wider font-semibold">
           1-Click Quick Ingest:
         </span>
         {quickTemplates.map((tpl, idx) => (
@@ -710,11 +710,11 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
             type="button"
             onClick={() => handleQuickTemplateAdd(tpl)}
             disabled={loading}
-            className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[#141B20] hover:bg-[#1C262E] text-gray-300 hover:text-[#00FF66] border border-[#212A32] hover:border-[#00FF66]/40 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+            className="text-xs px-2.5 py-1 rounded-lg bg-[#F5F9F6] hover:bg-[#E5F5E9] text-[#25352C] hover:text-[#174D35] border border-[#E6EDE7] transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <span className="text-[#00FF66] font-bold">+</span>
+            <span className="text-[#168653] font-bold">+</span>
             <span>{tpl.qty}x {tpl.name}</span>
-            <span className="text-gray-500 font-sans">({formatINR(tpl.price)})</span>
+            <span className="text-[#77857C] font-normal">({formatINR(tpl.price)})</span>
           </button>
         ))}
       </div>
@@ -722,23 +722,23 @@ export const AiCommandBar: React.FC<AiCommandBarProps> = ({
       {/* Execution status banner */}
       {statusMessage && (
         <div
-          className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between gap-2 transition-all ${
+          className={`p-3 rounded-2xl border text-xs flex items-center justify-between gap-2 transition-all ${
             statusMessage.type === 'success'
-              ? 'bg-[#0E1B13] border-[#00FF66]/40 text-[#00FF66]'
-              : 'bg-red-950/40 border-red-700/50 text-red-300'
+              ? 'bg-[#F0F9F2] border-[#C6E7D2] text-[#174D35]'
+              : 'bg-red-50 border-red-200 text-red-700'
           }`}
         >
           <div className="flex items-center gap-2 truncate">
             {statusMessage.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#00FF66]" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#168653]" />
             ) : (
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
             )}
-            <span className="truncate">{statusMessage.text}</span>
+            <span className="truncate font-medium">{statusMessage.text}</span>
           </div>
           <button
             onClick={() => setStatusMessage(null)}
-            className="text-[10px] opacity-70 hover:opacity-100 font-sans px-1"
+            className="text-[11px] text-[#77857C] hover:text-[#25352C] px-1 cursor-pointer"
           >
             Dismiss
           </button>

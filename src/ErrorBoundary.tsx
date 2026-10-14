@@ -27,23 +27,23 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#0B0D0E] text-[#EDEDED] flex items-center justify-center p-6 font-sans">
-          <div className="max-w-md w-full bg-[#101418] border border-[#232D35] rounded-2xl p-6 shadow-2xl text-center space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-950/50 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto">
+        <div className="min-h-screen bg-[#F5F9F6] text-[#25352C] flex items-center justify-center p-6 font-sans">
+          <div className="max-w-md w-full bg-white border border-[#E6EDE7] rounded-3xl p-6 shadow-xl text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-6 h-6" />
             </div>
 
             <div>
-              <h2 className="text-lg font-bold font-display text-white">
+              <h2 className="text-lg font-bold text-[#174D35]">
                 DDLC AI Application Notice
               </h2>
-              <p className="text-xs text-gray-400 mt-1 font-mono">
+              <p className="text-xs text-[#77857C] mt-1">
                 An unexpected execution error occurred while initializing the view.
               </p>
             </div>
 
             {this.state.error && (
-              <div className="p-3 rounded-xl bg-[#080A0B] border border-[#1C252C] text-left font-mono text-[11px] text-red-400 overflow-x-auto max-h-32">
+              <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-left font-mono text-[11px] text-red-700 overflow-x-auto max-h-32">
                 {this.state.error.message || String(this.state.error)}
               </div>
             )}
@@ -53,7 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 localStorage.clear();
                 window.location.reload();
               }}
-              className="w-full py-2.5 rounded-xl bg-[#00FF66] text-[#0A0D0F] font-mono font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#1aff75] transition-colors cursor-pointer shadow-[0_0_12px_rgba(0,255,102,0.2)]"
+              className="w-full py-2.5 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Reset & Reload Application</span>

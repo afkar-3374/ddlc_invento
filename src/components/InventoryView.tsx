@@ -15,6 +15,7 @@ import {
   Check,
   ScanLine,
   Tag,
+  Sparkles,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { Product } from '../types';
@@ -212,37 +213,49 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [products, showArchived, searchTerm, selectedCategory, selectedProject, stockFilter]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Page Title & Add Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-[#E6EDE7] rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-wide font-display flex items-center gap-2">
-            <span>Items & Purchases</span>
-            <span className="text-xs px-2 py-0.5 rounded font-mono bg-[#161F18] text-[#00FF66] border border-[#00FF66]/30">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-[#174D35] tracking-tight">
+              Inventory & Purchase Ledger
+            </h2>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2]">
               {filteredProducts.length} Items
             </span>
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Every added item is automatically numbered, calculated for total cost, and recorded as a purchase. AI handles all operations.
+          </div>
+          <p className="text-xs text-[#77857C] mt-1">
+            Every added item is automatically numbered, calculated for total cost, and recorded as a purchase.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={onOpenAddItem}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold bg-[#00FF66] text-black hover:bg-[#1aff75] transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(0,255,102,0.25)]"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#168653] hover:bg-[#126E43] text-white transition-all flex items-center gap-2 cursor-pointer shadow-xs active:scale-95"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>Add Item</span>
           </button>
+
+          {onOpenAiAddItem && (
+            <button
+              onClick={onOpenAiAddItem}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#E5F5E9] text-[#168653] hover:bg-[#D4EED9] transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Ingest</span>
+            </button>
+          )}
 
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-[#00FF66]/40 bg-[#12161A] text-[#00FF66] hover:bg-[#151D22] transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-[#E6EDE7] bg-white text-[#25352C] hover:bg-[#F5F9F6] transition-all flex items-center gap-1.5 cursor-pointer"
               title="Open Barcode Scanner"
             >
-              <ScanLine className="w-3.5 h-3.5" />
+              <ScanLine className="w-3.5 h-3.5 text-[#168653]" />
               <span>Scan</span>
             </button>
           )}
@@ -250,10 +263,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {onOpenLabels && (
             <button
               onClick={() => onOpenLabels()}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-medium border border-[#222B33] bg-[#12161A] text-gray-300 hover:text-white hover:border-[#00FF66]/40 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-[#E6EDE7] bg-white text-[#25352C] hover:bg-[#F5F9F6] transition-all flex items-center gap-1.5 cursor-pointer"
               title="Generate printable barcode labels"
             >
-              <Tag className="w-3.5 h-3.5 text-[#00FF66]" />
+              <Tag className="w-3.5 h-3.5 text-[#168653]" />
               <span>Labels</span>
             </button>
           )}
@@ -261,27 +274,22 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <button
             onClick={handleExportCSV}
             disabled={products.length === 0}
-            title={
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer ${
               products.length === 0
-                ? 'No items to export'
-                : `Export ${filteredProducts.length} items as CSV`
-            }
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
-              products.length === 0
-                ? 'opacity-40 cursor-not-allowed bg-[#12161A] text-gray-500 border-[#222B33]'
+                ? 'opacity-40 cursor-not-allowed bg-[#F5F9F6] text-[#77857C] border-[#E6EDE7]'
                 : exportedRecently
-                ? 'bg-emerald-950/50 text-[#00FF66] border-[#00FF66]/50 shadow-[0_0_10px_rgba(0,255,102,0.2)]'
-                : 'bg-[#12161A] text-gray-300 border-[#222B33] hover:text-[#00FF66] hover:border-[#00FF66]/40 hover:bg-[#151C22]'
+                ? 'bg-[#E5F5E9] text-[#168653] border-[#C6E7D2]'
+                : 'bg-white text-[#25352C] border-[#E6EDE7] hover:bg-[#F5F9F6]'
             }`}
           >
             {exportedRecently ? (
               <>
-                <Check className="w-3.5 h-3.5 text-[#00FF66]" />
-                <span className="text-[#00FF66]">Exported!</span>
+                <Check className="w-3.5 h-3.5 text-[#168653]" />
+                <span className="text-[#168653]">Exported!</span>
               </>
             ) : (
               <>
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5 text-[#77857C]" />
                 <span>Export CSV</span>
               </>
             )}
@@ -289,66 +297,53 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer ${
               showArchived
-                ? 'bg-amber-950/40 text-amber-400 border-amber-600/40'
-                : 'bg-[#12161A] text-gray-400 border-[#222B33] hover:text-white'
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : 'bg-white text-[#77857C] border-[#E6EDE7] hover:text-[#25352C]'
             }`}
           >
             {showArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-            <span>{showArchived ? 'Archived' : 'Active Items'}</span>
+            <span>{showArchived ? 'Archived' : 'Active'}</span>
           </button>
-
-          {products.length > 0 && (
-            <button
-              onClick={() => {
-                clearAllData();
-              }}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono text-gray-400 border border-[#222B33] bg-[#12161A] hover:text-red-400 hover:border-red-900/40 transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Clear all records to start completely clean"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear All</span>
-            </button>
-          )}
         </div>
       </div>
 
       {/* 3 Live Metric Cards: Total Cost, Items Count, Active Projects */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl bg-[#0D1216] border border-[#1C262F] flex flex-col justify-between shadow-lg">
-          <div className="text-[11px] font-mono text-gray-400 uppercase tracking-wider flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-5 rounded-3xl bg-white border border-[#E6EDE7] flex flex-col justify-between shadow-xs">
+          <div className="text-[11px] font-semibold text-[#77857C] uppercase tracking-wider flex items-center justify-between">
             <span>TOTAL PURCHASES (COST)</span>
-            <span className="w-2 h-2 rounded-full bg-[#00FF66] neon-dot" />
+            <span className="w-2 h-2 rounded-full bg-[#168653]" />
           </div>
-          <div className="text-2xl font-bold font-mono text-[#00FF66] mt-1.5">
+          <div className="text-2xl font-bold text-[#174D35] mt-1.5">
             {formatINR(totalPurchasesValue)}
           </div>
-          <div className="text-[10px] text-gray-400 mt-1">
+          <div className="text-[11px] text-[#77857C] mt-1">
             Auto-calculated across all recorded purchases
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0D1216] border border-[#1C262F] flex flex-col justify-between shadow-lg">
-          <div className="text-[11px] font-mono text-gray-400 uppercase tracking-wider">
+        <div className="p-5 rounded-3xl bg-white border border-[#E6EDE7] flex flex-col justify-between shadow-xs">
+          <div className="text-[11px] font-semibold text-[#77857C] uppercase tracking-wider">
             ITEMS IN INVENTORY
           </div>
-          <div className="text-2xl font-bold font-mono text-white mt-1.5">
-            {totalProductsCount} <span className="text-sm font-normal text-gray-400">items</span>
+          <div className="text-2xl font-bold text-[#174D35] mt-1.5">
+            {totalProductsCount} <span className="text-sm font-normal text-[#77857C]">items</span>
           </div>
-          <div className="text-[10px] text-gray-400 mt-1">
+          <div className="text-[11px] text-[#77857C] mt-1">
             {totalStockQuantity} total physical units on hand
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0D1216] border border-[#1C262F] flex flex-col justify-between shadow-lg">
-          <div className="text-[11px] font-mono text-gray-400 uppercase tracking-wider">
+        <div className="p-5 rounded-3xl bg-white border border-[#E6EDE7] flex flex-col justify-between shadow-xs">
+          <div className="text-[11px] font-semibold text-[#77857C] uppercase tracking-wider">
             ACTIVE PROJECTS
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1.5">
+          <div className="text-2xl font-bold text-[#174D35] mt-1.5">
             {activeProjectsCount}
           </div>
-          <div className="text-[10px] text-gray-400 mt-1">
+          <div className="text-[11px] text-[#77857C] mt-1">
             Live allocations and BOM tracking
           </div>
         </div>
@@ -367,17 +362,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       />
 
       {/* Filter and Search Bar */}
-      <div className="bg-[#101418] border border-[#1C242C] rounded-2xl p-4 space-y-3">
+      <div className="bg-white border border-[#E6EDE7] rounded-3xl p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search box */}
           <div className="flex-1 relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#77857C] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search by SKU, product name, vendor, storage location..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00FF66] transition-colors font-sans"
+              className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] placeholder-[#77857C] focus:outline-none focus:border-[#168653] focus:bg-white transition-colors"
             />
           </div>
 
@@ -386,7 +381,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-gray-200 focus:outline-none focus:border-[#00FF66] font-mono"
+              className="w-full px-3 py-2.5 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
             >
               <option value="ALL">All Categories</option>
               {availableCategories.map((c) => (
@@ -402,7 +397,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-gray-200 focus:outline-none focus:border-[#00FF66] font-mono"
+              className="w-full px-3 py-2.5 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
             >
               <option value="ALL">All Projects</option>
               <option value="UNASSIGNED">Unassigned</option>
@@ -419,7 +414,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <select
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value as any)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-xs text-gray-200 focus:outline-none focus:border-[#00FF66] font-mono"
+              className="w-full px-3 py-2.5 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
             >
               <option value="ALL">All Stock Levels</option>
               <option value="IN_STOCK">In Stock (&gt;0)</option>
@@ -431,36 +426,36 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* Products & Purchases Table */}
-      <div className="bg-[#101418] border border-[#1C242C] rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-[#E6EDE7] rounded-3xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#0C0F12] border-b border-[#1A2228] text-gray-400 font-mono text-[11px] uppercase tracking-wider select-none">
+          <table className="w-full text-left text-xs text-[#25352C]">
+            <thead className="bg-[#F0F9F2] border-b border-[#E6EDE7] text-[#174D35] text-[11px] font-semibold uppercase tracking-wider select-none">
               <tr>
                 <th className="py-3 px-4 text-center w-14">#</th>
-                <th className="py-3 px-4">Item & Code</th>
+                <th className="py-3 px-4">Item & SKU</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4 text-center">Stock Units</th>
                 <th className="py-3 px-4 text-right">Unit Price</th>
-                <th className="py-3 px-4 text-right text-[#00FF66]">Total Cost</th>
+                <th className="py-3 px-4 text-right text-[#168653]">Total Cost</th>
                 <th className="py-3 px-4 text-center">Purchase Ledger</th>
                 <th className="py-3 px-4">Project</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#182026]">
+            <tbody className="divide-y divide-[#F0F5F2]">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-gray-400 font-mono text-xs">
+                  <td colSpan={9} className="py-16 text-center text-[#77857C] text-xs">
                     <div className="max-w-md mx-auto space-y-2">
-                      <div className="w-10 h-10 rounded-xl bg-[#121E16] text-[#00FF66] border border-[#00FF66]/30 flex items-center justify-center mx-auto">
+                      <div className="w-10 h-10 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center mx-auto">
                         <Boxes className="w-5 h-5" />
                       </div>
-                      <p className="text-white font-medium text-sm">
+                      <p className="text-[#174D35] font-semibold text-sm">
                         {products.length === 0 ? 'No items in database yet' : 'No items match your filters'}
                       </p>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-[#77857C] text-xs">
                         {products.length === 0
-                          ? "Type what you want to add in the AI prompt above (e.g. 'Add 5x ESP32 at ₹450' or 'Add 2 Raspberry Pi at ₹8000') and AI will handle everything automatically."
+                          ? "Type what you want to add in the AI prompt above (e.g. 'Add 5x ESP32 at ₹450') and AI will handle everything automatically."
                           : 'Try clearing your search query or changing category and project filters.'}
                       </p>
                     </div>
@@ -477,11 +472,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   return (
                     <tr
                       key={p.id}
-                      className="hover:bg-[#13191E] transition-colors group"
+                      className="hover:bg-[#F5F9F6] transition-colors group"
                     >
                       {/* Automatic Sequential Number */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-[#122216] border border-[#00FF66]/40 text-[#00FF66] shadow-[0_0_8px_rgba(0,255,102,0.15)]">
+                        <span className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2]">
                           #{itemAutoNum}
                         </span>
                       </td>
@@ -490,15 +485,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <td className="py-3.5 px-4 min-w-[190px]">
                         <div
                           onClick={() => onViewItemDetails(p)}
-                          className="font-medium text-white hover:text-[#00FF66] cursor-pointer transition-colors"
+                          className="font-bold text-[#174D35] hover:underline cursor-pointer transition-colors"
                         >
                           {p.name}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-mono mt-0.5 flex items-center gap-2">
-                          <span className="text-[#00FF66]/80">{p.sku}</span>
+                        <div className="text-[11px] text-[#77857C] mt-0.5 flex items-center gap-2">
+                          <span className="font-mono font-bold text-[#168653]">{p.sku}</span>
                           {p.storageLocation && (
-                            <span className="flex items-center gap-1 text-gray-300">
-                              <MapPin className="w-2.5 h-2.5 text-gray-400" />
+                            <span className="flex items-center gap-1 text-[#77857C]">
+                              <MapPin className="w-2.5 h-2.5 text-[#77857C]" />
                               {p.storageLocation}
                             </span>
                           )}
@@ -507,15 +502,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </td>
 
                       {/* Category */}
-                      <td className="py-3.5 px-4 font-mono text-gray-300 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-[#151D22] text-gray-300 border border-[#212B33]">
+                      <td className="py-3.5 px-4 text-[#77857C] whitespace-nowrap">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#F5F9F6] text-[#25352C] border border-[#E6EDE7]">
                           {p.category || 'General'}
                         </span>
                       </td>
 
                       {/* Stock Level with Direct +/- Buttons */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5 bg-[#141A1F] border border-[#232D35] p-1 rounded-xl">
+                        <div className="inline-flex items-center gap-1.5 bg-[#F5F9F6] border border-[#E6EDE7] p-1 rounded-xl">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -526,7 +521,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             }}
                             disabled={p.quantity <= 0}
                             title="Decrement stock (-1)"
-                            className="w-6 h-6 rounded-lg bg-[#101418] hover:bg-[#1D252C] disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 hover:text-white flex items-center justify-center font-bold text-xs font-mono transition-colors cursor-pointer"
+                            className="w-6 h-6 rounded-lg bg-white border border-[#E6EDE7] hover:bg-[#E5F5E9] disabled:opacity-30 disabled:cursor-not-allowed text-[#25352C] flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
                           >
                             -
                           </button>
@@ -537,16 +532,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onAdjustStock(p);
                             }}
                             title="Click to set exact count"
-                            className="px-2 py-0.5 rounded-md font-mono text-xs font-bold cursor-pointer hover:underline"
+                            className="px-2 py-0.5 rounded-md text-xs font-bold cursor-pointer hover:underline"
                             style={{
                               color: isOutOfStock
-                                ? '#fca5a5'
+                                ? '#dc2626'
                                 : isLowStock
-                                ? '#fde68a'
-                                : '#34d399',
+                                ? '#d97706'
+                                : '#168653',
                             }}
                           >
-                            {p.quantity} <span className="text-[10px] opacity-75 font-normal">{p.unit}</span>
+                            {p.quantity} <span className="text-[10px] text-[#77857C] font-normal">{p.unit}</span>
                           </span>
 
                           <button
@@ -556,7 +551,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               adjustProductStock(p.id, p.quantity + 1, 'Quick stock increment (+1)');
                             }}
                             title="Increment stock (+1)"
-                            className="w-6 h-6 rounded-lg bg-[#101418] hover:bg-[#1D252C] text-gray-300 hover:text-[#00FF66] flex items-center justify-center font-bold text-xs font-mono transition-colors cursor-pointer"
+                            className="w-6 h-6 rounded-lg bg-white border border-[#E6EDE7] hover:bg-[#E5F5E9] text-[#25352C] hover:text-[#168653] flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
                           >
                             +
                           </button>
@@ -564,44 +559,44 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </td>
 
                       {/* Unit Price (No GST) */}
-                      <td className="py-3.5 px-4 text-right font-mono text-white whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right text-[#77857C] whitespace-nowrap font-medium">
                         {formatINR(p.unitPrice)}
                       </td>
 
                       {/* Total Cost (Strictly Qty * Unit Price) */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-[#00FF66] whitespace-nowrap text-xs">
+                      <td className="py-3.5 px-4 text-right font-bold text-[#168653] whitespace-nowrap text-xs">
                         {formatINR(computedTotalCost)}
                       </td>
 
                       {/* Purchase Ledger Record (Marked as Purchase) */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-emerald-950/50 text-emerald-300 border border-emerald-500/30">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#168653]" />
                           <span>PO-#{itemAutoNum} • Paid</span>
                         </span>
                       </td>
 
                       {/* Project */}
-                      <td className="py-3.5 px-4 font-mono whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {p.projectId ? (
-                          <span className="text-emerald-400 font-medium">
+                          <span className="text-[#174D35] font-semibold">
                             {projectName}
                           </span>
                         ) : (
-                          <span className="text-gray-400">General</span>
+                          <span className="text-[#77857C]">General</span>
                         )}
                       </td>
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1">
                           {onOpenLabels && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onOpenLabels(p);
                               }}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-[#00FF66] hover:bg-[#15201A] transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#77857C] hover:text-[#168653] hover:bg-[#E5F5E9] transition-colors cursor-pointer"
                               title="Print barcode label for this SKU"
                             >
                               <Tag className="w-3.5 h-3.5" />
@@ -613,7 +608,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               e.stopPropagation();
                               archiveProduct(p.id, p.archived);
                             }}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-[#1F1A14] transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#77857C] hover:text-amber-700 hover:bg-amber-50 transition-colors cursor-pointer"
                             title={p.archived ? 'Restore item' : 'Archive item'}
                           >
                             {p.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
@@ -624,7 +619,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               e.stopPropagation();
                               deleteProduct(p.id);
                             }}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#77857C] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Delete item"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -635,7 +630,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               e.stopPropagation();
                               onViewItemDetails(p);
                             }}
-                            className="px-2 py-1 rounded-lg text-gray-400 hover:text-[#00FF66] hover:bg-[#15201A] transition-all flex items-center gap-1 text-xs font-mono cursor-pointer"
+                            className="px-2 py-1 rounded-lg text-[#77857C] hover:text-[#174D35] hover:bg-[#E5F5E9] transition-all flex items-center gap-1 text-xs cursor-pointer font-semibold"
                             title="Inspect item details"
                           >
                             <span>Inspect</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FolderGit2, AlertCircle } from 'lucide-react';
+import { X, FolderGit2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { Project } from '../types';
 
@@ -82,34 +82,34 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-      <div className="bg-[#101418] border border-[#222B33] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-        <div className="flex items-center justify-between pb-4 border-b border-[#182026] mb-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+      <div className="bg-white border border-[#E6EDE7] rounded-3xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between pb-4 border-b border-[#F0F5F2] mb-5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#141A1F] border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <FolderGit2 className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-2xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
+              <FolderGit2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white font-display">
+              <h3 className="text-base font-bold text-[#174D35]">
                 {projectToEdit ? 'Edit Engineering Project' : 'Create New Project'}
               </h3>
-              <p className="text-[11px] font-mono text-gray-400">
-                Track dedicated BOM expenditure & active stock value
+              <p className="text-xs text-[#77857C]">
+                Track dedicated BOM expenditure & stock value
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1 rounded text-gray-400 hover:text-white"
+            className="p-1.5 rounded-xl text-[#77857C] hover:text-[#25352C] hover:bg-[#F5F9F6] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-950/40 border border-red-500/40 text-xs text-red-200 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -117,43 +117,43 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
-              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+              <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                 PROJECT NAME *
               </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Beta 2"
+                placeholder="e.g. Rover MK-2"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-white focus:outline-none focus:border-[#00FF66]"
+                className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+              <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                 CODE *
               </label>
               <input
                 type="text"
                 required
-                placeholder="BETA-2"
+                placeholder="ROVER"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-[#00FF66] font-mono font-bold focus:outline-none focus:border-[#00FF66]"
+                className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-[#168653] font-mono font-bold focus:outline-none focus:border-[#168653] focus:bg-white"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+              <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                 STATUS
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
               >
                 <option value="Beta">Beta (Prototype Trial)</option>
                 <option value="Active">Active (In Production)</option>
@@ -164,20 +164,20 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             </div>
 
             <div>
-              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+              <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                 START DATE
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] font-mono text-gray-400 block mb-1">
+            <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
               DESCRIPTION
             </label>
             <textarea
@@ -185,28 +185,28 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
               placeholder="Hardware scope, architecture, intended capabilities..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-white focus:outline-none focus:border-[#00FF66]"
+              className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-mono text-gray-400 block mb-1">
+            <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
               NOTES / MILESTONES
             </label>
             <input
               type="text"
-              placeholder="e.g. Thermal sign-off completed, ready for pilot run"
+              placeholder="e.g. Prototype assembly completed, ready for bench test"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#141A1F] border border-[#232D35] text-white focus:outline-none focus:border-[#00FF66]"
+              className="w-full px-3 py-2 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653] focus:bg-white"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#182026]">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#F0F5F2]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#141A1F] text-gray-400 hover:text-white"
+              className="px-4 py-2 rounded-xl bg-[#F5F9F6] text-[#77857C] hover:text-[#25352C] font-semibold cursor-pointer"
             >
               Cancel
             </button>
@@ -214,9 +214,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] text-[#0A0D0F] font-semibold flex items-center gap-2 shadow-[0_0_12px_rgba(0,255,102,0.25)] disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white font-semibold flex items-center gap-2 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
             >
-              {saving ? 'Saving...' : projectToEdit ? 'Save Changes' : 'Create Project'}
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : projectToEdit ? 'Save Changes' : 'Create Project'}</span>
             </button>
           </div>
         </form>

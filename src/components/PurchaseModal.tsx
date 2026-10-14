@@ -253,8 +253,6 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    // If user has not explicitly clicked "Add Item" yet, but has an active product selected with qty > 0,
-    // let's auto-include it if addedItems is empty so user never feels blocked!
     let itemsToSave = [...addedItems];
     if (itemsToSave.length === 0) {
       if (!activeProductId || activeQuantity <= 0) {
@@ -289,7 +287,6 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
       setSaving(true);
       setError(null);
 
-      // Save each added item as a purchase ledger entry and increment stock atomically
       for (const item of itemsToSave) {
         await addPurchase({
           productId: item.productId,
@@ -329,24 +326,24 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-[#0E1216] border border-[#222B33] rounded-2xl w-full max-w-4xl p-5 sm:p-7 shadow-2xl relative my-6 font-sans text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/40 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white border border-[#E6EDE7] rounded-3xl w-full max-w-4xl p-5 sm:p-7 shadow-2xl relative my-6 text-[#25352C] animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#1A2229] mb-5">
+        <div className="flex items-center justify-between pb-4 border-b border-[#F0F5F2] mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#141F18] border border-[#00FF66]/40 flex items-center justify-center text-[#00FF66] shadow-[0_0_12px_rgba(0,255,102,0.2)]">
+            <div className="w-10 h-10 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center">
               <Receipt className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold text-white font-display">
+                <h3 className="text-base sm:text-lg font-bold text-[#174D35]">
                   Record Purchase Order & Invoice
                 </h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#16221A] text-[#00FF66] border border-[#00FF66]/30">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2] font-semibold">
                   {addedItems.length} {addedItems.length === 1 ? 'Item' : 'Items'} Added
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-gray-400">
+              <p className="text-xs text-[#77857C]">
                 Multi-item procurement with real-time stock increment & financial ledger entry
               </p>
             </div>
@@ -354,7 +351,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#1A2229] transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-[#77857C] hover:text-[#25352C] hover:bg-[#F5F9F6] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -362,35 +359,35 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
         {/* Global Error Notice */}
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-950/50 border border-red-500/40 text-xs text-red-200 flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          <div className="mb-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
             <span className="flex-1">{error}</span>
           </div>
         )}
 
         {/* Action feedback toast */}
         {itemActionSuccess && (
-          <div className="mb-4 p-2.5 rounded-xl bg-[#12231A] border border-[#00FF66]/40 text-xs font-mono text-[#00FF66] flex items-center gap-2">
-            <Check className="w-4 h-4 text-[#00FF66] shrink-0" />
+          <div className="mb-4 p-2.5 rounded-xl bg-[#F0F9F2] border border-[#C6E7D2] text-xs text-[#168653] font-semibold flex items-center gap-2">
+            <Check className="w-4 h-4 text-[#168653] shrink-0" />
             <span>{itemActionSuccess}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmitPurchaseOrder} className="space-y-5 text-xs">
           {/* SECTION 1: INVOICE & ORDER METADATA */}
-          <div className="bg-[#12161A] border border-[#1C252D] rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between text-[11px] font-mono text-gray-400 pb-2 border-b border-[#1A2229]">
-              <span className="flex items-center gap-1.5 text-[#00FF66] font-bold">
-                <Building2 className="w-3.5 h-3.5" />
+          <div className="bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs pb-2 border-b border-[#E6EDE7]">
+              <span className="flex items-center gap-1.5 text-[#174D35] font-bold">
+                <Building2 className="w-3.5 h-3.5 text-[#168653]" />
                 1. INVOICE & VENDOR DETAILS
               </span>
-              <span className="text-gray-500 font-mono">Ledger Header</span>
+              <span className="text-[#77857C]">Ledger Header</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Invoice Number */}
               <div>
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   INVOICE / BILL #
                 </label>
                 <div className="relative">
@@ -400,14 +397,14 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     placeholder="INV-109283"
                     value={invoiceNumber}
                     onChange={(e) => setInvoiceNumber(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] font-semibold focus:outline-none focus:border-[#168653]"
                   />
                   <button
                     type="button"
                     onClick={() =>
                       setInvoiceNumber(`INV-${Math.floor(100000 + Math.random() * 900000)}`)
                     }
-                    className="absolute right-2 top-2 text-[10px] font-mono text-gray-500 hover:text-[#00FF66]"
+                    className="absolute right-2 top-2 text-xs text-[#77857C] hover:text-[#168653]"
                     title="Generate random invoice ID"
                   >
                     🎲
@@ -417,7 +414,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
               {/* Vendor */}
               <div>
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   SUPPLIER / VENDOR
                 </label>
                 <input
@@ -426,7 +423,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   placeholder="e.g. Robu.in, Mouser, Digikey"
                   value={vendorName}
                   onChange={(e) => setVendorName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white focus:outline-none focus:border-[#00FF66]"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653]"
                 />
                 <datalist id="vendor-datalist">
                   {vendors.map((v) => (
@@ -437,7 +434,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
               {/* Purchase Date */}
               <div>
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   PURCHASE DATE
                 </label>
                 <input
@@ -445,19 +442,19 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   required
                   value={purchaseDate}
                   onChange={(e) => setPurchaseDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653]"
                 />
               </div>
 
               {/* Payment Status */}
               <div>
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   PAYMENT STATUS
                 </label>
                 <select
                   value={paymentStatus}
                   onChange={(e) => setPaymentStatus(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653]"
                 >
                   <option value="Paid">Paid</option>
                   <option value="Partially Paid">Partially Paid</option>
@@ -468,13 +465,13 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
             {/* Project Allocation */}
             <div className="pt-1">
-              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+              <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                 CHARGE TO PROJECT (OPTIONAL)
               </label>
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653]"
               >
                 <option value="">Unassigned (General Lab Procurement / Shared Inventory)</option>
                 {projects.map((p) => (
@@ -488,17 +485,17 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
           {/* SECTION 2: ADD / EDIT ITEM TO PURCHASE FORM */}
           <div
-            className={`rounded-xl p-4 transition-all border ${
+            className={`rounded-2xl p-4 transition-all border ${
               editingItemId
-                ? 'bg-[#1C180E] border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-                : 'bg-[#12161A] border-[#1C252D]'
+                ? 'bg-amber-50 border-amber-300'
+                : 'bg-[#F5F9F6] border-[#E6EDE7]'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-mono pb-2.5 mb-3 border-b border-[#1E2730]">
+            <div className="flex items-center justify-between text-xs pb-2.5 mb-3 border-b border-[#E6EDE7]">
               <div className="flex items-center gap-2">
                 <span
                   className={`font-bold flex items-center gap-1.5 ${
-                    editingItemId ? 'text-amber-400' : 'text-[#00FF66]'
+                    editingItemId ? 'text-amber-800' : 'text-[#174D35]'
                   }`}
                 >
                   {editingItemId ? (
@@ -508,14 +505,14 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     </>
                   ) : (
                     <>
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 text-[#168653]" />
                       2. ADD ITEM TO INVOICE
                     </>
                   )}
                 </span>
                 {editingItemId && (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
-                    Active Edit Mode
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">
+                    Edit Mode
                   </span>
                 )}
               </div>
@@ -524,7 +521,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="text-[11px] font-mono text-gray-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-[#77857C] hover:text-[#25352C] flex items-center gap-1 cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3" />
                   Cancel Edit
@@ -536,13 +533,13 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
               {/* Product Select */}
               <div className="sm:col-span-5">
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   PRODUCT / SKU *
                 </label>
                 <select
                   value={activeProductId}
                   onChange={handleProductChange}
-                  className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white focus:outline-none focus:border-[#00FF66] font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653]"
                 >
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -554,14 +551,14 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
               {/* Quantity */}
               <div className="sm:col-span-2">
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   QTY RECEIVED *
                 </label>
                 <div className="flex items-center">
                   <button
                     type="button"
                     onClick={() => setActiveQuantity((q) => Math.max(1, q - 1))}
-                    className="px-2.5 py-2 bg-[#1A222A] hover:bg-[#222E38] text-gray-300 rounded-l-xl border border-r-0 border-[#242F3A] cursor-pointer"
+                    className="px-2.5 py-2 bg-white hover:bg-[#F5F9F6] text-[#25352C] rounded-l-xl border border-r-0 border-[#E6EDE7] cursor-pointer"
                   >
                     -
                   </button>
@@ -571,12 +568,12 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     step="1"
                     value={activeQuantity}
                     onChange={(e) => setActiveQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full text-center py-2 bg-[#161C22] border-y border-[#242F3A] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                    className="w-full text-center py-2 bg-white border-y border-[#E6EDE7] text-[#25352C] font-semibold focus:outline-none focus:border-[#168653]"
                   />
                   <button
                     type="button"
                     onClick={() => setActiveQuantity((q) => q + 1)}
-                    className="px-2.5 py-2 bg-[#1A222A] hover:bg-[#222E38] text-gray-300 rounded-r-xl border border-l-0 border-[#242F3A] cursor-pointer"
+                    className="px-2.5 py-2 bg-white hover:bg-[#F5F9F6] text-[#25352C] rounded-r-xl border border-l-0 border-[#E6EDE7] cursor-pointer"
                   >
                     +
                   </button>
@@ -585,7 +582,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
 
               {/* Unit Price */}
               <div className="sm:col-span-2">
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   UNIT PRICE (₹) *
                 </label>
                 <input
@@ -594,13 +591,13 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   step="0.01"
                   value={activeUnitPrice}
                   onChange={(e) => setActiveUnitPrice(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] font-semibold focus:outline-none focus:border-[#168653]"
                 />
               </div>
 
               {/* Discount */}
               <div className="sm:col-span-1">
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   DISCOUNT
                 </label>
                 <input
@@ -609,22 +606,22 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                   step="0.01"
                   value={activeDiscount}
                   onChange={(e) => setActiveDiscount(Number(e.target.value))}
-                  className="w-full px-2.5 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white font-mono focus:outline-none focus:border-[#00FF66]"
+                  className="w-full px-2.5 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653]"
                 />
               </div>
 
               {/* Line Total & Add / Update Button */}
               <div className="sm:col-span-2 flex flex-col justify-end">
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
-                  LINE TOTAL: <span className="text-[#00FF66] font-bold">{formatINR(currentLineTotal)}</span>
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
+                  LINE TOTAL: <span className="text-[#168653] font-bold">{formatINR(currentLineTotal)}</span>
                 </label>
                 <button
                   type="button"
                   onClick={handleAddOrUpdateItem}
-                  className={`w-full py-2 px-3 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md ${
+                  className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs ${
                     editingItemId
-                      ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                      : 'bg-[#15271C] hover:bg-[#1A3324] border border-[#00FF66]/50 text-[#00FF66] shadow-[0_0_10px_rgba(0,255,102,0.15)]'
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                      : 'bg-[#168653] hover:bg-[#126E43] text-white'
                   }`}
                 >
                   {editingItemId ? (
@@ -643,52 +640,49 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
             </div>
           </div>
 
-          {/* SECTION 3: ADDED ITEMS TABLE & ACTIONS (EDIT & CLEAR) */}
-          <div className="bg-[#12161A] border border-[#1C252D] rounded-xl p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-[#1E2730]">
+          {/* SECTION 3: ADDED ITEMS TABLE & ACTIONS */}
+          <div className="bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-[#E6EDE7]">
               <div className="flex items-center gap-2.5">
-                <span className="font-bold font-mono text-[#00FF66] flex items-center gap-1.5">
-                  <ShoppingCart className="w-3.5 h-3.5" />
+                <span className="font-bold text-[#174D35] flex items-center gap-1.5">
+                  <ShoppingCart className="w-3.5 h-3.5 text-[#168653]" />
                   3. ADDED ITEMS ({addedItems.length})
                 </span>
                 {addedItems.length > 0 && (
-                  <span className="text-[10px] font-mono text-gray-400 bg-[#161D22] px-2 py-0.5 rounded border border-[#24303B]">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-white text-[#168653] border border-[#C6E7D2] font-semibold">
                     {totalUnits} Units • {formatINR(grandInvoiceTotal)}
                   </span>
                 )}
               </div>
 
-              {/* Action buttons: Edit & Clear Added Items */}
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                {addedItems.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearAddedItems}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-mono text-red-400 hover:text-red-300 bg-red-950/30 hover:bg-red-950/60 border border-red-500/30 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Clear all added items from this purchase list"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Clear Added Items</span>
-                  </button>
-                )}
-              </div>
+              {addedItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAddedItems}
+                  className="px-2.5 py-1 rounded-xl text-xs text-red-600 hover:bg-red-50 border border-red-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Clear all added items from this purchase list"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Clear Added Items</span>
+                </button>
+              )}
             </div>
 
             {/* List / Table of added items */}
             {addedItems.length === 0 ? (
-              <div className="p-6 rounded-xl bg-[#0F1317] border border-dashed border-[#222C36] text-center space-y-2">
-                <Package className="w-8 h-8 text-gray-600 mx-auto" />
-                <p className="text-xs text-gray-400">
+              <div className="p-6 rounded-2xl bg-white border border-dashed border-[#E6EDE7] text-center space-y-2">
+                <Package className="w-8 h-8 text-[#168653] mx-auto opacity-40" />
+                <p className="text-xs font-semibold text-[#174D35]">
                   No items added to this purchase order yet.
                 </p>
-                <p className="text-[11px] font-mono text-gray-500">
+                <p className="text-[11px] text-[#77857C]">
                   Select a product above and click{' '}
-                  <span className="text-[#00FF66] font-bold">+ Add Item</span>, or save now to record the selected item.
+                  <span className="text-[#168653] font-bold">+ Add Item</span>, or save now to record the selected item.
                 </p>
                 <button
                   type="button"
                   onClick={handleAddOrUpdateItem}
-                  className="mt-1 px-3 py-1.5 rounded-lg bg-[#141E18] text-[#00FF66] border border-[#00FF66]/30 text-xs font-mono hover:bg-[#1A2820] cursor-pointer inline-flex items-center gap-1.5"
+                  className="mt-1 px-3 py-1.5 rounded-xl bg-[#E5F5E9] hover:bg-[#D4EED9] text-[#168653] text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Current Item ({products.find((p) => p.id === activeProductId)?.sku || 'Product'})</span>
@@ -696,21 +690,20 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {/* Desktop View Table */}
-                <div className="hidden sm:block overflow-x-auto rounded-lg border border-[#1E2730]">
-                  <table className="w-full text-left font-mono text-xs">
-                    <thead className="bg-[#151B20] text-gray-400 text-[10px] uppercase border-b border-[#1E2730]">
+                <div className="hidden sm:block overflow-x-auto rounded-xl border border-[#E6EDE7] bg-white">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F0F9F2] text-[#174D35] text-[11px] font-semibold uppercase border-b border-[#E6EDE7]">
                       <tr>
-                        <th className="py-2 px-3">#</th>
-                        <th className="py-2 px-3">Product / SKU</th>
-                        <th className="py-2 px-3 text-right">Unit Price</th>
-                        <th className="py-2 px-3 text-center">Qty</th>
-                        <th className="py-2 px-3 text-right">Discount</th>
-                        <th className="py-2 px-3 text-right">Total</th>
-                        <th className="py-2 px-3 text-center">Actions</th>
+                        <th className="py-2.5 px-3">#</th>
+                        <th className="py-2.5 px-3">Product / SKU</th>
+                        <th className="py-2.5 px-3 text-right">Unit Price</th>
+                        <th className="py-2.5 px-3 text-center">Qty</th>
+                        <th className="py-2.5 px-3 text-right">Discount</th>
+                        <th className="py-2.5 px-3 text-right">Total</th>
+                        <th className="py-2.5 px-3 text-center">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#182128]">
+                    <tbody className="divide-y divide-[#F0F5F2]">
                       {addedItems.map((item, index) => {
                         const isBeingEdited = editingItemId === item.id;
                         return (
@@ -718,56 +711,54 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                             key={item.id}
                             className={`transition-colors ${
                               isBeingEdited
-                                ? 'bg-amber-950/20 text-white font-medium'
-                                : 'bg-[#101418] hover:bg-[#141A20] text-gray-300'
+                                ? 'bg-amber-50 font-medium'
+                                : 'hover:bg-[#F5F9F6]'
                             }`}
                           >
-                            <td className="py-2.5 px-3 text-gray-500 text-[11px]">{index + 1}</td>
+                            <td className="py-2.5 px-3 text-[#77857C] text-[11px]">{index + 1}</td>
                             <td className="py-2.5 px-3">
                               <div className="flex items-center gap-2">
-                                <span className="text-[#00FF66] font-bold text-[11px]">
+                                <span className="font-mono text-[#168653] font-bold text-[11px]">
                                   {item.sku}
                                 </span>
-                                <span className="text-white font-sans truncate max-w-[200px]">
+                                <span className="font-semibold text-[#174D35] truncate max-w-[200px]">
                                   {item.productName}
                                 </span>
                               </div>
                             </td>
-                            <td className="py-2.5 px-3 text-right text-gray-300">
+                            <td className="py-2.5 px-3 text-right text-[#77857C]">
                               {formatINR(item.unitPrice)}
                             </td>
                             <td className="py-2.5 px-3 text-center">
-                              <span className="px-2 py-0.5 rounded bg-[#182128] text-white font-bold">
+                              <span className="px-2 py-0.5 rounded-lg bg-[#F5F9F6] text-[#25352C] font-semibold">
                                 {item.quantity} {item.unit}
                               </span>
                             </td>
-                            <td className="py-2.5 px-3 text-right text-gray-400">
+                            <td className="py-2.5 px-3 text-right text-[#77857C]">
                               {item.discount > 0 ? `-${formatINR(item.discount)}` : '—'}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-bold text-[#00FF66]">
+                            <td className="py-2.5 px-3 text-right font-bold text-[#168653]">
                               {formatINR(item.lineTotal)}
                             </td>
                             <td className="py-2.5 px-3 text-center">
                               <div className="flex items-center justify-center gap-1.5">
-                                {/* Edit Added Item */}
                                 <button
                                   type="button"
                                   onClick={() => handleStartEditItem(item)}
                                   className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                                     isBeingEdited
-                                      ? 'bg-amber-500 text-black font-bold'
-                                      : 'bg-[#182028] text-amber-400 hover:bg-amber-950/50 hover:text-amber-300 border border-amber-500/30'
+                                      ? 'bg-amber-600 text-white font-bold'
+                                      : 'bg-[#F5F9F6] text-amber-700 hover:bg-amber-50 border border-amber-200'
                                   }`}
                                   title="Edit this added item"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
 
-                                {/* Remove Added Item */}
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveItem(item.id)}
-                                  className="p-1.5 rounded-lg text-xs bg-[#182028] text-red-400 hover:bg-red-950/50 hover:text-red-300 border border-red-500/30 transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-lg text-xs bg-[#F5F9F6] text-red-600 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
                                   title="Remove this item"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -780,69 +771,6 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                     </tbody>
                   </table>
                 </div>
-
-                {/* Mobile View: Cards */}
-                <div className="sm:hidden space-y-2">
-                  {addedItems.map((item, index) => {
-                    const isBeingEdited = editingItemId === item.id;
-                    return (
-                      <div
-                        key={item.id}
-                        className={`p-3 rounded-xl border transition-all ${
-                          isBeingEdited
-                            ? 'bg-amber-950/20 border-amber-500/50'
-                            : 'bg-[#101418] border-[#1C252D]'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="text-[10px] font-mono text-[#00FF66] font-bold">
-                              #{index + 1} • {item.sku}
-                            </span>
-                            <h4 className="text-xs font-semibold text-white mt-0.5">
-                              {item.productName}
-                            </h4>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-[#00FF66]">
-                            {formatINR(item.lineTotal)}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#182128] text-[11px] font-mono text-gray-400">
-                          <div>
-                            <span>Qty: </span>
-                            <span className="text-white font-bold">
-                              {item.quantity} {item.unit}
-                            </span>{' '}
-                            <span>@ {formatINR(item.unitPrice)}</span>
-                            {item.discount > 0 && (
-                              <span className="text-amber-400 ml-1">(-{formatINR(item.discount)})</span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleStartEditItem(item)}
-                              className="px-2 py-1 rounded bg-[#182028] text-amber-400 border border-amber-500/30 text-[10px] flex items-center gap-1"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="px-2 py-1 rounded bg-[#182028] text-red-400 border border-red-500/30 text-[10px] flex items-center gap-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Remove</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             )}
           </div>
@@ -850,55 +778,55 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
           {/* SECTION 4: GRAND SUMMARY & NOTES */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-stretch">
             {/* Notes Field */}
-            <div className="sm:col-span-7 bg-[#12161A] border border-[#1C252D] rounded-xl p-3.5 flex flex-col justify-between">
+            <div className="sm:col-span-7 bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-3.5 flex flex-col justify-between">
               <div>
-                <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                   PURCHASE ORDER NOTES & REMARKS
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Expedited courier delivery, batch QC certificate attached, PO approved by lead"
+                  placeholder="e.g. Courier tracking info, vendor invoice notes, batch approval"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#161C22] border border-[#242F3A] text-white focus:outline-none focus:border-[#00FF66] text-xs resize-none"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#E6EDE7] text-[#25352C] focus:outline-none focus:border-[#168653] text-xs resize-none"
                 />
               </div>
-              <div className="text-[10px] font-mono text-gray-500 mt-2">
+              <div className="text-[10px] text-[#77857C] mt-2">
                 All records sync to Cloud Firestore with atomic audit entries.
               </div>
             </div>
 
             {/* Total Calculation Card */}
-            <div className="sm:col-span-5 bg-[#12181E] border border-[#1E2B35] rounded-xl p-3.5 flex flex-col justify-between space-y-2 font-mono">
+            <div className="sm:col-span-5 bg-white border border-[#E6EDE7] rounded-2xl p-4 flex flex-col justify-between space-y-2 shadow-xs">
               <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between text-gray-400">
+                <div className="flex justify-between text-[#77857C]">
                   <span>Line Items:</span>
-                  <span className="text-white font-bold">
+                  <span className="text-[#25352C] font-bold">
                     {addedItems.length > 0 ? addedItems.length : '1 (pending)'}
                   </span>
                 </div>
-                <div className="flex justify-between text-gray-400">
+                <div className="flex justify-between text-[#77857C]">
                   <span>Total Units:</span>
-                  <span className="text-white font-bold">
+                  <span className="text-[#25352C] font-bold">
                     {addedItems.length > 0 ? totalUnits : activeQuantity} units
                   </span>
                 </div>
                 {totalDiscounts > 0 && (
-                  <div className="flex justify-between text-amber-400">
+                  <div className="flex justify-between text-amber-700">
                     <span>Total Discount:</span>
                     <span>-{formatINR(totalDiscounts)}</span>
                   </div>
                 )}
               </div>
 
-              <div className="pt-2 border-t border-[#22303D] flex items-center justify-between">
+              <div className="pt-2 border-t border-[#F0F5F2] flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-wider block">
+                  <span className="text-[10px] text-[#77857C] uppercase tracking-wider block">
                     GRAND TOTAL
                   </span>
-                  <span className="text-xs text-gray-500 font-mono">0% GST Recorded</span>
+                  <span className="text-xs text-[#77857C]">0% GST Recorded</span>
                 </div>
-                <span className="text-xl font-bold text-[#00FF66] tracking-tight drop-shadow-[0_0_8px_rgba(0,255,102,0.3)]">
+                <span className="text-xl font-bold text-[#168653]">
                   {formatINR(addedItems.length > 0 ? grandInvoiceTotal : currentLineTotal)}
                 </span>
               </div>
@@ -906,12 +834,12 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
           </div>
 
           {/* SECTION 5: MODAL ACTIONS */}
-          <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[#182026]">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[#F0F5F2]">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#141A1F] hover:bg-[#1A2228] text-gray-400 hover:text-white transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#F5F9F6] text-[#77857C] hover:text-[#25352C] font-semibold transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -920,7 +848,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
                 <button
                   type="button"
                   onClick={handleClearAddedItems}
-                  className="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs font-mono text-red-400 hover:text-white hover:bg-red-950/40 border border-red-500/30 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-3.5 py-2 rounded-xl text-xs text-red-600 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
                 >
                   Clear Items ({addedItems.length})
                 </button>
@@ -930,11 +858,11 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <button
               type="submit"
               disabled={saving}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] text-[#0A0D0F] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(0,255,102,0.25)] cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-50"
             >
               {saving ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Recording Purchase Order...</span>
                 </>
               ) : (

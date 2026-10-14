@@ -186,56 +186,56 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-[#101418] border border-[#222B33] rounded-2xl w-full max-w-4xl p-5 sm:p-6 shadow-2xl relative my-6 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white border border-[#E6EDE7] rounded-3xl w-full max-w-4xl p-5 sm:p-6 shadow-2xl relative my-6 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-[#182026] shrink-0">
+        <div className="flex items-start justify-between pb-4 border-b border-[#F0F5F2] shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 flex items-center gap-1.5">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2] flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5" />
-                DDLC LABEL ENGINE
+                DDLC Label Studio
               </span>
-              <span className="text-xs text-gray-400 font-mono">CODE 128 VECTOR BARCODES</span>
+              <span className="text-xs text-[#77857C]">Code 128 Vector Barcodes</span>
             </div>
-            <h3 className="text-lg font-bold text-white font-display">
+            <h3 className="text-lg font-bold text-[#174D35] tracking-tight">
               Generate Barcode & SKU Labels
             </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Printable industrial stickers with Code 128 barcodes, product name, and registered SKU.
+            <p className="text-xs text-[#77857C] mt-0.5">
+              Printable industrial stickers with Code 128 barcodes, product name, and permanent DDLC- SKU.
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-[#77857C] hover:text-[#25352C] hover:bg-[#F5F9F6] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body: Split into Setup on Left (60%) and Live Preview on Right (40%) */}
-        <div className="flex-1 overflow-y-auto py-4 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0">
+        <div className="flex-1 overflow-y-auto py-4 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 text-xs">
           {/* Left: Configuration Form (7 Cols) */}
           <div className="lg:col-span-7 space-y-4">
             {/* Mode Tabs */}
-            <div className="flex items-center gap-2 p-1 bg-[#14191E] rounded-xl border border-[#202931]">
+            <div className="flex items-center gap-2 p-1 bg-[#F5F9F6] rounded-2xl border border-[#E6EDE7]">
               <button
                 onClick={() => setMode('range')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   mode === 'range'
-                    ? 'bg-[#00FF66] text-black font-bold shadow-xs'
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-[#168653] text-white shadow-xs'
+                    : 'text-[#77857C] hover:text-[#25352C]'
                 }`}
               >
                 1. SKU Range Batch
               </button>
               <button
                 onClick={() => setMode('select')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   mode === 'select'
-                    ? 'bg-[#00FF66] text-black font-bold shadow-xs'
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-[#168653] text-white shadow-xs'
+                    : 'text-[#77857C] hover:text-[#25352C]'
                 }`}
               >
                 2. Product Selection ({selectedProductIds.size})
@@ -244,44 +244,44 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
 
             {/* Mode 1: SKU Range Inputs */}
             {mode === 'range' && (
-              <div className="bg-[#13171B] border border-[#1C2329] rounded-xl p-4 space-y-3">
-                <div className="text-xs font-mono text-gray-300 font-semibold flex items-center justify-between">
+              <div className="bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-4 space-y-3">
+                <div className="text-xs text-[#174D35] font-bold flex items-center justify-between">
                   <span>SPECIFY SKU INTERVAL</span>
-                  <span className="text-[10px] text-gray-400">e.g. DDLC-CMP-00010 to DDLC-CMP-00025</span>
+                  <span className="text-[11px] text-[#77857C] font-normal">e.g. DDLC-0001 to DDLC-0010</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-mono text-gray-400 block mb-1">
+                    <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                       Starting SKU
                     </label>
                     <input
                       type="text"
                       value={startSku}
                       onChange={(e) => setStartSku(e.target.value)}
-                      placeholder="e.g. ITEM-001 or DDLC-CMP-00010"
-                      className="w-full bg-[#181E24] border border-[#26313C] focus:border-[#00FF66] rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-gray-500 focus:outline-hidden transition-all"
+                      placeholder="e.g. DDLC-0001"
+                      className="w-full bg-white border border-[#E6EDE7] focus:border-[#168653] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#168653] placeholder-[#77857C] focus:outline-hidden transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-mono text-gray-400 block mb-1">
+                    <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                       Ending SKU
                     </label>
                     <input
                       type="text"
                       value={endSku}
                       onChange={(e) => setEndSku(e.target.value)}
-                      placeholder="e.g. ITEM-015 or DDLC-CMP-00025"
-                      className="w-full bg-[#181E24] border border-[#26313C] focus:border-[#00FF66] rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-gray-500 focus:outline-hidden transition-all"
+                      placeholder="e.g. DDLC-0015"
+                      className="w-full bg-white border border-[#E6EDE7] focus:border-[#168653] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#168653] placeholder-[#77857C] focus:outline-hidden transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Quick Autofill Buttons from Existing Range */}
                 {products.length > 0 && (
-                  <div className="pt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-mono text-gray-400">Quick ranges:</span>
+                  <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-[#77857C]">Quick ranges:</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -289,7 +289,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                         setStartSku(sorted[0].sku);
                         setEndSku(sorted[Math.min(sorted.length - 1, 9)].sku);
                       }}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#182026] text-gray-300 hover:text-white border border-[#252E36] transition-colors"
+                      className="text-xs px-2.5 py-1 rounded-lg bg-white text-[#174D35] hover:bg-[#E5F5E9] border border-[#E6EDE7] transition-colors cursor-pointer font-medium"
                     >
                       First 10 SKUs
                     </button>
@@ -300,7 +300,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                         setStartSku(sorted[0].sku);
                         setEndSku(sorted[sorted.length - 1].sku);
                       }}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#182026] text-gray-300 hover:text-white border border-[#252E36] transition-colors"
+                      className="text-xs px-2.5 py-1 rounded-lg bg-white text-[#174D35] hover:bg-[#E5F5E9] border border-[#E6EDE7] transition-colors cursor-pointer font-medium"
                     >
                       All ({products.length} SKUs)
                     </button>
@@ -311,17 +311,17 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
 
             {/* Mode 2: Multi-product selection */}
             {mode === 'select' && (
-              <div className="bg-[#13171B] border border-[#1C2329] rounded-xl p-4 space-y-3">
+              <div className="bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-4 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   {/* Search */}
                   <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 text-gray-500 absolute left-3 top-2.5" />
+                    <Search className="w-3.5 h-3.5 text-[#77857C] absolute left-3 top-2.5" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search name, SKU, or category..."
-                      className="w-full bg-[#181E24] border border-[#26313C] focus:border-[#00FF66] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-hidden"
+                      className="w-full bg-white border border-[#E6EDE7] focus:border-[#168653] rounded-xl pl-8 pr-3 py-1.5 text-xs text-[#25352C] placeholder-[#77857C] focus:outline-hidden"
                     />
                   </div>
 
@@ -329,7 +329,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                   <select
                     value={filterProject}
                     onChange={(e) => setFilterProject(e.target.value)}
-                    className="bg-[#181E24] border border-[#26313C] text-xs font-mono text-gray-300 rounded-xl px-2.5 py-1.5 focus:outline-hidden focus:border-[#00FF66]"
+                    className="bg-white border border-[#E6EDE7] text-xs text-[#25352C] rounded-xl px-2.5 py-1.5 focus:outline-hidden focus:border-[#168653]"
                   >
                     <option value="">All Projects</option>
                     {projects.map((proj) => (
@@ -340,14 +340,14 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                   </select>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] font-mono text-gray-400 pt-1">
+                <div className="flex items-center justify-between text-[11px] text-[#77857C] pt-1">
                   <span>Available: {selectableProducts.length} items • Selected: {selectedProductIds.size}</span>
                   <div className="flex items-center gap-2">
                     {selectedProductIds.size > 0 && (
                       <button
                         type="button"
                         onClick={() => setSelectedProductIds(new Set())}
-                        className="text-red-400 hover:text-red-300 hover:underline cursor-pointer"
+                        className="text-red-600 hover:underline cursor-pointer"
                       >
                         Clear Selected ({selectedProductIds.size})
                       </button>
@@ -355,7 +355,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                     <button
                       type="button"
                       onClick={handleSelectAll}
-                      className="text-[#00FF66] hover:underline cursor-pointer"
+                      className="text-[#168653] font-semibold hover:underline cursor-pointer"
                     >
                       {selectedProductIds.size === selectableProducts.length
                         ? 'Deselect All'
@@ -372,27 +372,27 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                       <div
                         key={p.id}
                         onClick={() => toggleProductSelect(p.id)}
-                        className={`p-2 rounded-lg border text-xs flex items-center justify-between cursor-pointer transition-all ${
+                        className={`p-2.5 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-[#18231E] border-[#00FF66]/50 text-white'
-                            : 'bg-[#161C21] border-[#202931] text-gray-300 hover:border-gray-600'
+                            ? 'bg-[#E5F5E9] border-[#C6E7D2] text-[#174D35]'
+                            : 'bg-white border-[#E6EDE7] text-[#25352C] hover:border-[#C6E7D2]'
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-[#00FF66] shrink-0" />
+                            <CheckSquare className="w-4 h-4 text-[#168653] shrink-0" />
                           ) : (
-                            <Square className="w-4 h-4 text-gray-500 shrink-0" />
+                            <Square className="w-4 h-4 text-[#77857C] shrink-0" />
                           )}
                           <div className="min-w-0">
-                            <span className="font-mono text-[11px] text-[#00FF66] mr-2">
+                            <span className="font-mono font-bold text-[11px] text-[#168653] mr-2">
                               {p.sku}
                             </span>
-                            <span className="font-medium truncate">{p.name}</span>
+                            <span className="font-semibold truncate">{p.name}</span>
                           </div>
                         </div>
 
-                        <span className="text-[10px] font-mono text-gray-400 shrink-0">
+                        <span className="text-[10px] text-[#77857C] shrink-0">
                           Qty: {p.quantity} {p.unit}
                         </span>
                       </div>
@@ -403,11 +403,11 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
             )}
 
             {/* Label Dimensions & Copies Configuration */}
-            <div className="bg-[#13171B] border border-[#1C2329] rounded-xl p-4 space-y-3">
+            <div className="bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Size Selector */}
                 <div>
-                  <label className="text-[11px] font-mono text-gray-400 block mb-1">
+                  <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                     Label Size & Format
                   </label>
                   <select
@@ -416,7 +416,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                       const found = LABEL_SIZES.find((s) => s.id === e.target.value);
                       if (found) setSelectedSize(found);
                     }}
-                    className="w-full bg-[#181E24] border border-[#26313C] focus:border-[#00FF66] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-hidden"
+                    className="w-full bg-white border border-[#E6EDE7] focus:border-[#168653] rounded-xl px-3 py-2 text-xs text-[#25352C] focus:outline-hidden"
                   >
                     {LABEL_SIZES.map((sz) => (
                       <option key={sz.id} value={sz.id}>
@@ -424,12 +424,12 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                       </option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-gray-400 mt-1">{selectedSize.description}</p>
+                  <p className="text-[10px] text-[#77857C] mt-1">{selectedSize.description}</p>
                 </div>
 
                 {/* Copies Per Item */}
                 <div>
-                  <label className="text-[11px] font-mono text-gray-400 block mb-1">
+                  <label className="text-[11px] font-semibold text-[#77857C] block mb-1">
                     Copies Per Product
                   </label>
                   <div className="flex items-center gap-2">
@@ -439,7 +439,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                       max="100"
                       value={copiesPerItem}
                       onChange={(e) => setCopiesPerItem(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full bg-[#181E24] border border-[#26313C] focus:border-[#00FF66] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-hidden"
+                      className="w-full bg-white border border-[#E6EDE7] focus:border-[#168653] rounded-xl px-3 py-2 text-xs font-bold text-[#25352C] focus:outline-hidden"
                     />
                     <div className="flex gap-1 shrink-0">
                       {[1, 2, 5].map((qty) => (
@@ -447,10 +447,10 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                           key={qty}
                           type="button"
                           onClick={() => setCopiesPerItem(qty)}
-                          className={`px-2 py-1.5 rounded-lg text-xs font-mono border transition-all ${
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                             copiesPerItem === qty
-                              ? 'bg-[#00FF66]/20 border-[#00FF66] text-[#00FF66]'
-                              : 'bg-[#182026] border-[#252E36] text-gray-300'
+                              ? 'bg-[#168653] border-[#168653] text-white'
+                              : 'bg-white border-[#E6EDE7] text-[#25352C] hover:bg-[#F5F9F6]'
                           }`}
                         >
                           {qty}x
@@ -462,31 +462,31 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
               </div>
             </div>
 
-            {/* Results / Missing SKU summary (Requirement 5) */}
-            <div className="bg-[#13171B] border border-[#1C2329] rounded-xl p-3.5 text-xs font-mono space-y-2">
+            {/* Results / Missing SKU summary */}
+            <div className="bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-3.5 text-xs space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-gray-300">
-                  Matched Products: <strong className="text-white">{matchedProducts.length}</strong>
+                <span className="text-[#25352C]">
+                  Matched Products: <strong className="text-[#174D35]">{matchedProducts.length}</strong>
                 </span>
-                <span className="text-[#00FF66]">
-                  Total Labels to Print: <strong>{totalLabelsCount}</strong>
+                <span className="text-[#168653] font-bold">
+                  Total Labels: <strong>{totalLabelsCount}</strong>
                 </span>
               </div>
 
               {missingSkus.length > 0 && (
-                <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-600/30 text-amber-300 text-[11px]">
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px]">
                   <div className="flex items-center gap-1.5 font-bold mb-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                     <span>Missing SKUs in Firestore range ({missingSkus.length} omitted):</span>
                   </div>
-                  <div className="max-h-16 overflow-y-auto leading-relaxed text-amber-200/90 break-words">
+                  <div className="max-h-16 overflow-y-auto leading-relaxed text-amber-700 break-words font-mono">
                     {missingSkus.join(', ')}
                   </div>
                 </div>
               )}
 
               {matchedProducts.length === 0 && (
-                <div className="text-gray-500 text-[11px]">
+                <div className="text-[#77857C] text-[11px]">
                   {mode === 'range'
                     ? 'Enter a valid starting and ending SKU above to pull matching inventory records.'
                     : 'Select one or more products above to generate barcode labels.'}
@@ -497,26 +497,26 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
 
           {/* Right: Live Label Preview (5 Cols) */}
           <div className="lg:col-span-5 flex flex-col space-y-3">
-            <div className="flex items-center justify-between text-xs font-mono text-gray-300">
-              <span className="flex items-center gap-1.5 font-semibold">
-                <Eye className="w-4 h-4 text-[#00FF66]" />
+            <div className="flex items-center justify-between text-xs text-[#174D35] font-bold">
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-4 h-4 text-[#168653]" />
                 Live Label Print Preview
               </span>
               {matchedProducts.length > 1 && (
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[11px] text-[#77857C] font-normal">
                   {previewIndex + 1} of {matchedProducts.length}
                 </span>
               )}
             </div>
 
             {/* Visual Label Mockup Card */}
-            <div className="flex-1 min-h-[260px] bg-[#0A0D0F] border border-[#1C242C] rounded-2xl p-4 flex flex-col items-center justify-center relative">
+            <div className="flex-1 min-h-[260px] bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-4 flex flex-col items-center justify-center relative shadow-inner">
               {currentPreviewProduct ? (
-                <div className="w-full max-w-[280px] bg-white text-black rounded-lg p-3 shadow-xl border border-gray-300 space-y-1.5 select-none font-sans">
+                <div className="w-full max-w-[280px] bg-white text-black rounded-xl p-3.5 shadow-md border border-[#E6EDE7] space-y-1.5 select-none font-sans">
                   {/* Label Header */}
-                  <div className="flex items-center justify-between text-[10px] border-b border-gray-200 pb-1">
-                    <span className="font-bold tracking-wider text-black">DDLC AI</span>
-                    <span className="text-gray-600 font-mono text-[9px] truncate max-w-[120px]">
+                  <div className="flex items-center justify-between text-[10px] border-b border-gray-100 pb-1">
+                    <span className="font-bold tracking-wider text-[#168653]">DDLC AI</span>
+                    <span className="text-gray-500 font-mono text-[9px] truncate max-w-[120px]">
                       {currentPreviewProduct.projectId || currentPreviewProduct.category}
                     </span>
                   </div>
@@ -546,14 +546,14 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                   </div>
 
                   {/* Footer metadata */}
-                  <div className="text-[9px] text-gray-500 flex items-center justify-between pt-1 border-t border-gray-200 font-mono">
+                  <div className="text-[9px] text-gray-500 flex items-center justify-between pt-1 border-t border-gray-100 font-mono">
                     <span>Loc: {currentPreviewProduct.storageLocation || 'Main Lab'}</span>
                     <span>Qty: {currentPreviewProduct.quantity} {currentPreviewProduct.unit}</span>
                   </div>
                 </div>
               ) : (
-                <div className="text-center p-6 space-y-2 text-gray-500 text-xs font-mono">
-                  <Tag className="w-8 h-8 mx-auto opacity-30" />
+                <div className="text-center p-6 space-y-2 text-[#77857C] text-xs">
+                  <Tag className="w-8 h-8 mx-auto text-[#168653] opacity-40" />
                   <p>No product selected for preview</p>
                 </div>
               )}
@@ -564,7 +564,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                   <button
                     onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
                     disabled={previewIndex === 0}
-                    className="px-2 py-1 rounded bg-[#141A1F] text-xs font-mono text-gray-300 disabled:opacity-30 border border-[#232D35]"
+                    className="px-2.5 py-1 rounded-lg bg-white text-xs font-semibold text-[#25352C] disabled:opacity-30 border border-[#E6EDE7] shadow-2xs hover:bg-[#E5F5E9] cursor-pointer"
                   >
                     ← Prev
                   </button>
@@ -573,7 +573,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
                       setPreviewIndex((prev) => Math.min(matchedProducts.length - 1, prev + 1))
                     }
                     disabled={previewIndex >= matchedProducts.length - 1}
-                    className="px-2 py-1 rounded bg-[#141A1F] text-xs font-mono text-gray-300 disabled:opacity-30 border border-[#232D35]"
+                    className="px-2.5 py-1 rounded-lg bg-white text-xs font-semibold text-[#25352C] disabled:opacity-30 border border-[#E6EDE7] shadow-2xs hover:bg-[#E5F5E9] cursor-pointer"
                   >
                     Next →
                   </button>
@@ -583,19 +583,19 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
 
             {/* Single Item Quick Formats (PNG / SVG) */}
             {currentPreviewProduct && (
-              <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#13171B] border border-[#1C2329] text-xs font-mono">
-                <span className="text-gray-400 text-[10px]">CURRENT LABEL:</span>
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs">
+                <span className="text-[#77857C] text-[10px] font-semibold uppercase">CURRENT LABEL:</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => downloadSingleLabelPng(currentPreviewProduct, selectedSize)}
-                    className="px-2.5 py-1 rounded-lg bg-[#182026] hover:bg-[#1E2730] text-gray-200 text-[11px] border border-[#252E36] transition-colors cursor-pointer"
+                    className="px-3 py-1 rounded-lg bg-white hover:bg-[#E5F5E9] text-[#174D35] text-xs font-semibold border border-[#E6EDE7] transition-colors cursor-pointer"
                     title="Download active preview as PNG image"
                   >
                     PNG
                   </button>
                   <button
                     onClick={() => downloadSingleLabelSvg(currentPreviewProduct, selectedSize)}
-                    className="px-2.5 py-1 rounded-lg bg-[#182026] hover:bg-[#1E2730] text-gray-200 text-[11px] border border-[#252E36] transition-colors cursor-pointer"
+                    className="px-3 py-1 rounded-lg bg-white hover:bg-[#E5F5E9] text-[#174D35] text-xs font-semibold border border-[#E6EDE7] transition-colors cursor-pointer"
                     title="Download active preview as Vector SVG"
                   >
                     SVG
@@ -607,16 +607,16 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
         </div>
 
         {/* Modal Footer with Download actions */}
-        <div className="pt-4 border-t border-[#182026] flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="text-xs font-mono text-gray-400">
-            {generationError && <span className="text-red-400 mr-2">{generationError}</span>}
+        <div className="pt-4 border-t border-[#F0F5F2] flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-[#77857C]">
+            {generationError && <span className="text-red-600 mr-2">{generationError}</span>}
             <span>Print ready: 300 DPI high-contrast vector symbols</span>
           </div>
 
           <div className="flex items-center gap-2.5">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#141A1F] hover:bg-[#1A2229] border border-[#222C35] text-xs font-mono text-gray-300 hover:text-white transition-all cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[#F5F9F6] hover:bg-[#E5F5E9] border border-[#E6EDE7] text-xs font-semibold text-[#77857C] hover:text-[#25352C] transition-all cursor-pointer"
             >
               Cancel
             </button>
@@ -624,7 +624,7 @@ export const GenerateLabelsModal: React.FC<GenerateLabelsModalProps> = ({
             <button
               onClick={handleDownloadPdf}
               disabled={matchedProducts.length === 0 || isGenerating}
-              className="px-5 py-2.5 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] disabled:opacity-40 disabled:hover:bg-[#00FF66] text-black font-bold text-xs flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(0,255,102,0.3)] cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-[#168653] hover:bg-[#126E43] disabled:opacity-40 disabled:hover:bg-[#168653] text-white font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>

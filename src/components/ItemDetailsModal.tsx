@@ -55,7 +55,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
   const movements = stockMovements.filter((sm) => sm.productId === product.id);
   const itemPurchases = purchases.filter((po) => po.productId === product.id);
 
-  // Strictly separate valuations (Requirement 4)
+  // Strictly separate valuations
   const unitCost = product.unitPrice || 0;
   const currentStockValuation = (product.quantity || 0) * unitCost;
   const totalRecordedPurchaseValue = itemPurchases.reduce(
@@ -64,35 +64,35 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-[#101418] border border-[#222B33] rounded-2xl w-full max-w-3xl p-5 sm:p-6 shadow-2xl relative my-6 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white border border-[#E6EDE7] rounded-3xl w-full max-w-3xl p-5 sm:p-6 shadow-2xl relative my-6 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
         {/* Header Bar */}
-        <div className="flex items-start justify-between pb-4 border-b border-[#182026] shrink-0">
+        <div className="flex items-start justify-between pb-4 border-b border-[#F0F5F2] shrink-0">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-[#161D22] text-[#00FF66] border border-[#00FF66]/30">
+              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2]">
                 {product.sku}
               </span>
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#161D22] text-gray-300 border border-gray-700">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#F5F9F6] text-[#25352C] border border-[#E6EDE7] font-medium">
                 {product.category || 'General'}
               </span>
               {product.barcode && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#161D22] text-cyan-400 border border-cyan-800">
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded-lg bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">
                   BARCODE: {product.barcode}
                 </span>
               )}
               {product.archived && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/60 text-amber-400 border border-amber-800">
-                  ARCHIVED
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+                  Archived
                 </span>
               )}
             </div>
-            <h3 className="text-lg font-bold text-white font-display">
+            <h3 className="text-xl font-bold text-[#174D35] tracking-tight">
               {product.name}
             </h3>
             {(product.brand || product.model) && (
-              <div className="text-xs text-gray-400 font-mono mt-0.5">
-                Brand: <span className="text-gray-200">{product.brand || 'Not recorded'}</span> • Model: <span className="text-gray-200">{product.model || 'Not recorded'}</span>
+              <div className="text-xs text-[#77857C] mt-0.5">
+                Brand: <span className="text-[#25352C] font-semibold">{product.brand || 'Not recorded'}</span> • Model: <span className="text-[#25352C] font-semibold">{product.model || 'Not recorded'}</span>
               </div>
             )}
           </div>
@@ -103,14 +103,14 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                 onClose();
                 onEdit(product);
               }}
-              className="p-1.5 rounded-lg bg-[#141A1F] text-gray-400 hover:text-white border border-[#232D35] transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-[#F5F9F6] text-[#77857C] hover:text-[#174D35] border border-[#E6EDE7] hover:bg-[#E5F5E9] transition-colors cursor-pointer"
               title="Edit Product"
             >
               <Edit2 className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-[#77857C] hover:text-[#25352C] hover:bg-[#F5F9F6] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -118,33 +118,33 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
         </div>
 
         {/* Scrollable Body Content */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1 min-h-0">
-          {/* Cost & Stock Valuation Banner (Requirement 4: Distinctly Separate Values) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#0D1114] p-3.5 rounded-xl border border-[#1A232A] font-mono text-xs">
+        <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1 min-h-0 text-xs">
+          {/* Cost & Stock Valuation Banner */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F5F9F6] p-4 rounded-2xl border border-[#E6EDE7]">
             <div>
-              <span className="text-[10px] text-gray-400 block uppercase">Current Stock</span>
-              <span className="text-base font-bold text-white">
-                {product.quantity} <span className="text-xs text-gray-400 font-normal">{product.unit || 'pcs'}</span>
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">Current Stock</span>
+              <span className="text-lg font-bold text-[#174D35]">
+                {product.quantity} <span className="text-xs text-[#77857C] font-normal">{product.unit || 'pcs'}</span>
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] text-gray-400 block uppercase">Unit Purchase Cost</span>
-              <span className="text-base font-bold text-white">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">Unit Purchase Cost</span>
+              <span className="text-lg font-bold text-[#25352C]">
                 {formatINR(unitCost)}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] text-gray-400 block uppercase">Stock Valuation</span>
-              <span className="text-base font-bold text-[#00FF66]">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">Stock Valuation</span>
+              <span className="text-lg font-bold text-[#168653]">
                 {formatINR(currentStockValuation)}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] text-gray-400 block uppercase">Total PO Value</span>
-              <span className="text-base font-bold text-cyan-400">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">Total Recorded PO</span>
+              <span className="text-lg font-bold text-[#0284C7]">
                 {formatINR(totalRecordedPurchaseValue || product.totalCost || currentStockValuation)}
               </span>
             </div>
@@ -152,24 +152,24 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
 
           {/* Technical Specifications & Allocation Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-[#14191E] border border-[#1F262D]">
-              <span className="text-[10px] font-mono text-gray-400 block">BARCODE VALUE</span>
-              <span className="font-mono text-white font-medium">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7]">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">BARCODE VALUE</span>
+              <span className="font-mono text-[#168653] font-bold">
                 {product.barcode || 'Not recorded'}
               </span>
             </div>
 
-            <div className="p-3 rounded-xl bg-[#14191E] border border-[#1F262D]">
-              <span className="text-[10px] font-mono text-gray-400 block">STORAGE LOCATION</span>
-              <span className="font-medium text-white">
-                {product.storageLocation || 'Not recorded'}
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7]">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">STORAGE LOCATION</span>
+              <span className="font-semibold text-[#25352C]">
+                {product.storageLocation || 'Main Lab'}
               </span>
             </div>
 
-            <div className="p-3 rounded-xl bg-[#14191E] border border-[#1F262D] flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono text-gray-400 block">PROJECT ALLOCATION</span>
-                <span className="font-medium text-white">
+                <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">PROJECT ALLOCATION</span>
+                <span className="font-semibold text-[#174D35]">
                   {project ? `${project.name} (${project.code})` : product.projectId || 'Unassigned / General'}
                 </span>
               </div>
@@ -179,30 +179,30 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                     onClose();
                     onNavigateToProject(project.id);
                   }}
-                  className="text-[10px] font-mono text-emerald-400 hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#168653] hover:underline cursor-pointer"
                 >
                   View Project
                 </button>
               )}
             </div>
 
-            <div className="p-3 rounded-xl bg-[#14191E] border border-[#1F262D]">
-              <span className="text-[10px] font-mono text-gray-400 block">SUPPLIER / VENDOR</span>
-              <span className="font-medium text-white">
-                {product.vendor || 'Not recorded'}
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7]">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">SUPPLIER / VENDOR</span>
+              <span className="font-semibold text-[#25352C]">
+                {product.vendor || 'Direct Purchase'}
               </span>
             </div>
 
-            <div className="p-3 rounded-xl bg-[#14191E] border border-[#1F262D]">
-              <span className="text-[10px] font-mono text-gray-400 block">PURCHASE DATE</span>
-              <span className="font-medium text-white">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7]">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">PURCHASE DATE</span>
+              <span className="font-semibold text-[#25352C]">
                 {product.purchaseDate || 'Not recorded'}
               </span>
             </div>
 
-            <div className="p-3 rounded-xl bg-[#14191E] border border-[#1F262D]">
-              <span className="text-[10px] font-mono text-gray-400 block">GST RATE & RECORDED AMOUNT</span>
-              <span className="font-medium text-white">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7]">
+              <span className="text-[10px] font-semibold text-[#77857C] block uppercase tracking-wider">GST RATE & AMOUNT</span>
+              <span className="font-semibold text-[#25352C]">
                 {product.gstPercent && product.gstPercent > 0
                   ? `${product.gstPercent}% (${formatINR(product.gstAmount)})`
                   : '0% / Exempted (Direct Lab Cost)'}
@@ -212,33 +212,33 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
 
           {/* Description */}
           {product.description && (
-            <div className="p-3.5 rounded-xl bg-[#14191E] border border-[#1F262D] text-xs">
-              <span className="text-[10px] font-mono text-gray-400 block mb-1">
-                DESCRIPTION & SPECIFICATIONS
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7]">
+              <span className="text-[10px] font-semibold text-[#77857C] block mb-1 uppercase tracking-wider">
+                DESCRIPTION & TECHNICAL SPECIFICATIONS
               </span>
-              <p className="text-gray-300 leading-relaxed">{product.description}</p>
+              <p className="text-[#25352C] leading-relaxed">{product.description}</p>
             </div>
           )}
 
           {/* Notes */}
           {product.notes && (
-            <div className="p-3.5 rounded-xl bg-[#14191E] border border-[#1F262D] text-xs">
-              <span className="text-[10px] font-mono text-gray-400 block mb-1">LAB NOTES</span>
-              <p className="text-gray-300 leading-relaxed">{product.notes}</p>
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E6EDE7]">
+              <span className="text-[10px] font-semibold text-[#77857C] block mb-1 uppercase tracking-wider">LAB NOTES</span>
+              <p className="text-[#25352C] leading-relaxed">{product.notes}</p>
             </div>
           )}
 
           {/* Timestamps */}
-          <div className="p-3 rounded-xl bg-[#14191E] border border-[#1F262D] text-[11px] font-mono flex items-center justify-between text-gray-400">
+          <div className="p-3 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-[11px] flex items-center justify-between text-[#77857C]">
             <span>Created: {product.createdAt ? new Date(product.createdAt).toLocaleString() : 'Not recorded'}</span>
             <span>Last Updated: {product.updatedAt ? new Date(product.updatedAt).toLocaleString() : 'Not recorded'}</span>
           </div>
 
           {/* Purchase History Ledger */}
-          <div className="space-y-2 pt-2 border-t border-[#182026]">
+          <div className="space-y-2 pt-2 border-t border-[#F0F5F2]">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-mono font-semibold uppercase text-gray-300 flex items-center gap-1.5">
-                <Receipt className="w-3.5 h-3.5 text-amber-400" />
+              <h4 className="text-xs font-bold text-[#174D35] uppercase flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5 text-[#168653]" />
                 Purchase History ({itemPurchases.length})
               </h4>
               {onNavigateToPurchases && itemPurchases.length > 0 && (
@@ -247,7 +247,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                     onClose();
                     onNavigateToPurchases();
                   }}
-                  className="text-[10px] font-mono text-[#00FF66] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#168653] hover:underline cursor-pointer"
                 >
                   View All Orders
                 </button>
@@ -255,7 +255,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
             </div>
 
             {itemPurchases.length === 0 ? (
-              <div className="py-4 text-center text-xs font-mono text-gray-400 bg-[#0C0F12] rounded-xl border border-[#182026]">
+              <div className="py-4 text-center text-xs text-[#77857C] bg-[#F5F9F6] rounded-2xl border border-[#E6EDE7]">
                 No explicit purchase orders linked to this SKU.
               </div>
             ) : (
@@ -263,20 +263,20 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                 {itemPurchases.map((po) => (
                   <div
                     key={po.id}
-                    className="p-2.5 rounded-lg bg-[#12161A] border border-[#1B2228] flex items-center justify-between text-xs font-mono"
+                    className="p-3 rounded-xl bg-white border border-[#E6EDE7] flex items-center justify-between text-xs"
                   >
                     <div>
-                      <span className="font-bold text-white">{po.purchaseNumber}</span>
-                      <span className="text-gray-400 text-[10px] ml-2">{po.purchaseDate}</span>
-                      <div className="text-[10px] text-gray-400">
+                      <span className="font-bold text-[#174D35]">{po.purchaseNumber}</span>
+                      <span className="text-[#77857C] text-[11px] ml-2">{po.purchaseDate}</span>
+                      <div className="text-[11px] text-[#77857C]">
                         {po.vendorNameSnapshot} • Qty: {po.quantity}
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-[#00FF66] font-bold">
+                      <span className="text-[#168653] font-bold">
                         {formatINR(po.invoiceTotal)}
                       </span>
-                      <div className="text-[10px] text-gray-400 uppercase">{po.paymentStatus}</div>
+                      <div className="text-[10px] text-[#77857C] uppercase">{po.paymentStatus}</div>
                     </div>
                   </div>
                 ))}
@@ -285,14 +285,14 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
           </div>
 
           {/* Stock Movements Ledger */}
-          <div className="space-y-2 pt-2 border-t border-[#182026]">
-            <h4 className="text-xs font-mono font-semibold uppercase text-gray-300 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-[#00FF66]" />
+          <div className="space-y-2 pt-2 border-t border-[#F0F5F2]">
+            <h4 className="text-xs font-bold text-[#174D35] uppercase flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-[#168653]" />
               Stock Movements Ledger ({movements.length})
             </h4>
 
             {movements.length === 0 ? (
-              <div className="py-4 text-center text-xs font-mono text-gray-400 bg-[#0C0F12] rounded-xl border border-[#182026]">
+              <div className="py-4 text-center text-xs text-[#77857C] bg-[#F5F9F6] rounded-2xl border border-[#E6EDE7]">
                 No stock movement events recorded yet.
               </div>
             ) : (
@@ -300,26 +300,26 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                 {movements.map((m) => (
                   <div
                     key={m.id}
-                    className="p-2.5 rounded-lg bg-[#12161A] border border-[#1B2228] flex items-center justify-between text-xs font-mono"
+                    className="p-3 rounded-xl bg-white border border-[#E6EDE7] flex items-center justify-between text-xs"
                   >
                     <div>
-                      <span className="font-bold text-white uppercase text-[11px]">{m.type}</span>
-                      <span className="text-gray-400 text-[10px] ml-2">
+                      <span className="font-bold text-[#174D35] uppercase text-[11px]">{m.type}</span>
+                      <span className="text-[#77857C] text-[11px] ml-2">
                         {new Date(m.createdAt).toLocaleDateString()}
                       </span>
-                      <div className="text-[10px] text-gray-400 mt-0.5">{m.notes}</div>
+                      <div className="text-[11px] text-[#77857C] mt-0.5">{m.notes}</div>
                     </div>
                     <div className="text-right">
                       <span
-                        className={
+                        className={`font-bold ${
                           m.newStock >= m.previousStock
-                            ? 'text-[#00FF66] font-bold'
-                            : 'text-amber-400 font-bold'
-                        }
+                            ? 'text-[#168653]'
+                            : 'text-amber-600'
+                        }`}
                       >
                         {m.newStock >= m.previousStock ? `+${m.quantity}` : `-${m.quantity}`}
                       </span>
-                      <div className="text-[10px] text-gray-400">Bal: {m.newStock}</div>
+                      <div className="text-[10px] text-[#77857C]">Balance: {m.newStock}</div>
                     </div>
                   </div>
                 ))}
@@ -329,14 +329,14 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-[#182026] shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-4 border-t border-[#F0F5F2] shrink-0">
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 archiveProduct(product.id, product.archived);
                 onClose();
               }}
-              className="px-3 py-1.5 rounded-xl bg-[#141A1F] text-gray-400 hover:text-amber-400 border border-[#232D36] text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[#F5F9F6] text-[#77857C] hover:text-amber-600 border border-[#E6EDE7] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               {product.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
               <span>{product.archived ? 'Restore' : 'Archive'}</span>
@@ -344,10 +344,10 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
 
             <button
               onClick={() => downloadSingleLabelPng(product)}
-              className="px-3 py-1.5 rounded-xl bg-[#141A1F] hover:bg-[#1A2229] border border-[#242F38] text-xs font-mono text-gray-300 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-xl bg-[#F5F9F6] hover:bg-[#E5F5E9] border border-[#E6EDE7] text-xs font-semibold text-[#174D35] transition-all cursor-pointer flex items-center gap-1.5"
               title="Download barcode label as PNG"
             >
-              <Printer className="w-3.5 h-3.5 text-[#00FF66]" />
+              <Printer className="w-3.5 h-3.5 text-[#168653]" />
               <span>Label PNG</span>
             </button>
           </div>
@@ -359,7 +359,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                   onClose();
                   onGenerateLabel(product);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-[#141A1F] hover:bg-[#1A2229] text-[#00FF66] border border-[#00FF66]/30 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#168653] font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Tag className="w-3.5 h-3.5" />
                 <span>Batch Labels</span>
@@ -371,9 +371,9 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                 onClose();
                 onAdjustStock(product);
               }}
-              className="px-3 py-1.5 rounded-xl bg-[#141A1F] hover:bg-[#1A2229] text-gray-200 border border-[#232D36] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-[#F5F9F6] hover:bg-[#E5F5E9] text-[#25352C] border border-[#E6EDE7] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#00FF66]" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#168653]" />
               <span>Adjust Stock</span>
             </button>
 
@@ -382,7 +382,7 @@ export const ItemDetailsModal: React.FC<ItemDetailsModalProps> = ({
                 onClose();
                 onAddPurchase(product);
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-[#00FF66] hover:bg-[#1aff75] text-[#0A0D0F] font-semibold text-xs flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,255,102,0.25)] transition-all cursor-pointer"
+              className="px-4 py-1.5 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New PO</span>
