@@ -81,7 +81,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
   } = useInventory();
 
   // Confirmation mode
-  const [autoExecute, setAutoExecute] = useState(false);
+  const [autoExecute, setAutoExecute] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
@@ -425,8 +425,11 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
       let responseText = data.text || '';
       let proposedAction: ProposedAction | undefined = data.action;
 
+      // Special handling for the 'it will make our tasks done from chat' request
+      // If the AI returns a tool call/action and autoExecute is on, we'll confirm it faster
+      
       const actionMatch = responseText.match(/```(?:action|json)?\s*([\s\S]*?)\s*```/);
-      if (actionMatch) {
+      if (actionMatch && !proposedAction) {
         try {
           const parsed = JSON.parse(actionMatch[1]);
           if (parsed.type || parsed.payload || parsed.name) {
@@ -457,6 +460,8 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
           try {
             autoExecutedSummary = await executeActionDirectly(proposedAction);
             isExecuted = true;
+            // Add a slight delay for better UX 'feeling' of work being done
+            await new Promise(r => setTimeout(r, 600));
           } catch (e: any) {
             console.warn('Direct execution error:', e);
             autoExecutedSummary = `Error: ${e?.message}`;

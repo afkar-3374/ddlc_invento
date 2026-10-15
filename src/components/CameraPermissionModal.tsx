@@ -51,7 +51,7 @@ export const CameraPermissionModal: React.FC<CameraPermissionModalProps> = ({
         // If it fails, check if it's a specific hardware error or a permission error
         const name = err?.name || '';
         if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          throw new Error('Camera access is currently blocked. Please click the button again to try requesting permission.');
+          throw new Error('Camera access is currently blocked. Please click the button to try again.');
         }
         throw err;
       }
@@ -126,21 +126,14 @@ export const CameraPermissionModal: React.FC<CameraPermissionModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-4">
-          <p className="text-xs text-[#55695E] leading-relaxed">
-            Allow camera access to scan electronic components, IC reels, project boxes, and parts directly with your device camera.
-          </p>
-
-          {/* Key perks */}
-          <div className="bg-[#F5F9F6] border border-[#E6EDE7] rounded-2xl p-3.5 space-y-2 text-xs">
-            <div className="flex items-center gap-2.5 text-[#25352C]">
-              <CheckCircle className="w-4 h-4 text-[#168653] shrink-0" />
-              <span className="font-medium text-[11px]">Instant optical barcode & 2D QR decoding</span>
+        <div className="p-6 space-y-4 text-center">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="w-20 h-20 rounded-full bg-[#E5F5E9] flex items-center justify-center text-[#168653] shadow-inner">
+              <Camera className="w-10 h-10" />
             </div>
-            <div className="flex items-center gap-2.5 text-[#25352C]">
-              <CheckCircle className="w-4 h-4 text-[#168653] shrink-0" />
-              <span className="font-medium text-[11px]">Automatic stock matching & project allocation</span>
-            </div>
+            <p className="text-sm font-semibold text-[#25352C]">
+              Camera access is required to scan barcodes.
+            </p>
           </div>
 
           {/* Primary Action Button directly inside app */}
@@ -149,31 +142,26 @@ export const CameraPermissionModal: React.FC<CameraPermissionModalProps> = ({
               type="button"
               onClick={handleAllowCamera}
               disabled={isRequesting}
-              className="w-full py-3.5 px-4 rounded-2xl bg-[#168653] hover:bg-[#126E43] text-white text-sm font-bold transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+              className="w-full py-4 px-4 rounded-2xl bg-[#168653] hover:bg-[#126E43] text-white text-base font-bold transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
             >
               {isRequesting ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Requesting Camera Access...</span>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span>Requesting Access...</span>
                 </>
               ) : (
                 <>
-                  <Camera className="w-4 h-4" />
+                  <Camera className="w-5 h-5" />
                   <span>Allow Camera from App</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* Error notice if user denied or blocked */}
+          {/* Error notice if user denied or blocked - strictly simplified */}
           {(errorMessage || initialError) && (
-            <div className="p-3 rounded-xl text-xs flex items-start gap-2 bg-[#FFF9E6] text-[#7A5B04] border border-[#FFE8A3]">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#B88700]" />
-              <div className="flex-1">
-                <span className="leading-relaxed font-medium">
-                  {errorMessage || initialError}
-                </span>
-              </div>
+            <div className="p-4 rounded-2xl text-sm bg-red-50 text-red-700 border border-red-100 font-medium">
+              {errorMessage || initialError}
             </div>
           )}
         </div>

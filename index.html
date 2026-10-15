@@ -22,22 +22,26 @@
     <script>
       // Suppress Vite HMR WebSocket closed notices and platform-specific mock errors
       (function() {
-        // Mock WebSocket to prevent even trying to connect if it's hitting the vite client
         const OriginalWebSocket = window.WebSocket;
         window.WebSocket = function(url, protocols) {
           if (typeof url === 'string' && (url.includes('vite') || url.includes('hmr'))) {
-            console.log('Intercepted Vite WebSocket connection attempt to:', url);
-            return {
-              addEventListener: function() {},
-              removeEventListener: function() {},
+            const mock = {
+              url: url,
+              readyState: 3,
               send: function() {},
               close: function() {},
-              readyState: 3, // CLOSED
+              addEventListener: function() {},
+              removeEventListener: function() {},
+              dispatchEvent: function() { return true; },
+              onopen: null,
+              onmessage: null,
+              onerror: null,
+              onclose: null
             };
+            return mock;
           }
           return new OriginalWebSocket(url, protocols);
         };
-        // Ensure the prototype is kept for 'instanceof' checks if any
         window.WebSocket.prototype = OriginalWebSocket.prototype;
 
         var _origError = console.error;
@@ -52,7 +56,8 @@
             str.indexOf('vite-hmr') !== -1 ||
             str.indexOf('MockViteWebSocket') !== -1 ||
             str.indexOf('Illegal invocation') !== -1 ||
-            str.indexOf('WebSocket connection to') !== -1
+            str.indexOf('WebSocket connection to') !== -1 ||
+            str.indexOf('HMR') !== -1
           );
         }
 

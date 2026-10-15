@@ -132,9 +132,7 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
     try {
       // 1. Guard against non-secure context or missing mediaDevices API
       if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost') {
-        setCameraError(
-          'Camera access requires a secure connection (HTTPS). Live camera scanning is paused, but manual SKU lookup and USB barcode scanners are active.'
-        );
+        setCameraError('Camera access requires HTTPS.');
         setIsScanning(false);
         setScannerInitializing(false);
         return;
@@ -240,7 +238,7 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
       ) {
         setShowPermissionModal(true);
         setCameraError(
-          'Camera access was not granted. Please click "Allow Camera" below to try again.'
+          'Camera access was not granted. Please click the button below to try again.'
         );
       } else if (
         errName === 'NotFoundError' ||
@@ -498,7 +496,7 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="font-bold text-xs text-[#6B4F00]">
-                      Camera Access Notice
+                      Camera Access
                     </div>
                     <div className="leading-relaxed text-[#7A5B04]">{cameraError}</div>
                   </div>

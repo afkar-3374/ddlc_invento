@@ -135,9 +135,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
     try {
       // 1. Guard against non-secure context or missing mediaDevices API
       if (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost') {
-        setCameraError(
-          'Live camera access requires HTTPS. Scanner is operating in USB barcode reader & manual SKU mode.'
-        );
+        setCameraError('Camera access requires HTTPS.');
         setIsScanning(false);
         setScannerInitializing(false);
         isInitializingRef.current = false;
@@ -260,7 +258,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
       ) {
         setShowPermissionModal(true);
         setCameraError(
-          'Camera access was not granted. Please click "Allow Camera" below to try again.'
+          'Camera access was not granted. Please click the button below to try again.'
         );
       } else if (
         errName === 'NotFoundError' ||

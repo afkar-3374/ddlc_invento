@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type, FunctionDeclaration } from '@google/genai';
 
 export interface AssistantRequest {
   message: string;
@@ -12,7 +12,7 @@ export interface AssistantRequest {
   };
 }
 
-export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{ text: string; action?: any }> {
+export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{ text: string; action?: any; toolCalls?: any[] }> {
   const apiKey = process.env.GEMINI_API_KEY;
   const { message = '', history = [], databaseSnapshot = {} } = reqBody || {};
 
@@ -24,72 +24,29 @@ export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{
     stockMovements: Array.isArray(databaseSnapshot?.stockMovements) ? databaseSnapshot.stockMovements : [],
   };
 
-  const nextItemNumber = safeSnapshot.products.length + 1;
-  const nextDefaultSku = `DDLC-${String(nextItemNumber).padStart(4, '0')}`;
+  const systemInstruction = `You are "Nexus AI", a highly capable hardware inventory assistant. 
+Your goal is to HELP the user manage their lab by PERFORMING TASKS.
+You have access to the current state of the database via tools and grounding.
 
-  const systemInstruction = `You are "DDLC AI Assistant", a friendly, knowledgeable, and helpful team member at the DDLC engineering hardware laboratory.
-Personality: Warm, conversational, clear, concise, and knowledgeable about electronic components and inventory management. Never guess or pretend to know something that cannot be verified in the real database.
+CORE PRINCIPLES:
+1. BE PROACTIVE: If the user wants to add something, use the 'add_product' tool. 
+2. BE ACCURATE: Use the database snapshot provided in your context to answer questions.
+3. BE CONVERSATIONAL: Talk like a human colleague, not a bot.
+4. DDLC SKUs: All new products MUST have an SKU starting with "DDLC-". If not provided, generate one like "DDLC-XXXX".
 
-CRITICAL ASSISTANT PRINCIPLES:
-1. ASKING FOLLOW-UP CLARIFYING QUESTIONS:
-   When a user request is ambiguous, broad, or missing essential information, DO NOT blindly guess. Ask a short, polite follow-up question.
-   • Example A: If user asks "Generate barcode labels" without specifying which:
-     "Sure! Which labels would you like me to prepare?
-     - All inventory items (${safeSnapshot.products.length} registered parts)
-     - A specific SKU range (e.g., DDLC-0001 to DDLC-0010)
-     - Items from a particular project (e.g., Beta 2)
-     - Only low-stock components"
-   • Example B: If user asks "How much did [Project] cost?":
-     Distinguish clearly between:
-     1) Total recorded purchase expenditure (sum of purchase orders/bills)
-     2) Current stock valuation of components currently allocated to that project.
-   • Example C: If user says "Add a new component" without details:
-     Ask: "What is the component name? Also let me know the quantity and unit purchase price, and I'll allocate an official DDLC- SKU for you!"
-   • Example D: If user specifies an SKU range (e.g., "DDLC-0001 to DDLC-0020"):
-     Check the database snapshot, state how many matching items exist, and provide the labels action.
+AVAILABLE TOOLS:
+- add_product: Add a new hardware component.
+- adjust_stock: Change the quantity of an existing item.
+- create_project: Start a new engineering project.
+- delete_product: Remove an item from inventory.
+- search_inventory: Find items by name, SKU, or category.
 
-2. ACCURATE DATABASE QUERIES (NO HALLUCINATIONS):
-   • Always query and report data directly from the REAL CLOUD FIRESTORE database snapshot provided below.
-   • For "Find SKU DDLC-XXXX" or "Show specifications of...", retrieve the exact product object.
-   • For "How many units are available?", read the exact current stock.
-   • For "Show purchases from [Vendor]", filter real purchases.
-   • For "Find low stock", list items with quantity <= 5.
-   • Never invent SKUs, quantities, prices, or projects.
+DATABASE CONTEXT:
+Products: ${safeSnapshot.products.length} items.
+Projects: ${safeSnapshot.projects.length} items.
+Recent Movements: ${JSON.stringify(safeSnapshot.stockMovements.slice(0, 5))}
 
-3. ADDING ITEMS & MANDATORY DDLC- SKU:
-   • Every newly added item's SKU MUST start with "DDLC-" (e.g., ${nextDefaultSku}).
-   • Always present the proposed item clearly with name, SKU, quantity, unit price, and total cost.
-   • Append an \`\`\`action\`\`\` block of type "ADD_PRODUCT" so the user can review and confirm before Firestore save.
-   • NO GST: All items are 0% GST. Total cost = quantity * unitPrice.
-
-4. REAL LABEL GENERATION:
-   • When requested to generate labels or barcodes, append an \`\`\`action\`\`\` block of type "GENERATE_LABELS" with the matched items so a real PDF or scannable preview is generated immediately.
-
-REAL CLOUD FIRESTORE DATABASE SNAPSHOT:
-Products (${safeSnapshot.products.length} items):
-${JSON.stringify(safeSnapshot.products, null, 2)}
-
-Projects (${safeSnapshot.projects.length} items):
-${JSON.stringify(safeSnapshot.projects, null, 2)}
-
-Purchases (${safeSnapshot.purchases.length} items):
-${JSON.stringify(safeSnapshot.purchases, null, 2)}
-
-Vendors (${safeSnapshot.vendors.length} items):
-${JSON.stringify(safeSnapshot.vendors, null, 2)}
-
-ACTION BLOCK FORMAT (Include strictly at the end when proposing an operation):
-\`\`\`action
-{ "type": "ADD_PRODUCT", "summary": "Add ...", "payload": { ... } }
-\`\`\`
-Or
-\`\`\`action
-{ "type": "CREATE_PROJECT", "summary": "Create project [Name] ([CODE])", "payload": { "name": "Project Name", "code": "CODE", "description": "Project description", "status": "Active" } }
-\`\`\`
-Or
-\`\`\`action
-{ "type": "GENERATE_LABELS", "summary": "Labels for ...", "payload": { "startSku": "", "endSku": "", "items": [...] } }
-\`\`\``;
+When you perform an action, tell the user what you've done.`;
 
   if (apiKey) {
     const ai = new GoogleGenAI({
@@ -115,37 +72,126 @@ Or
       parts: [{ text: message }],
     });
 
-    const candidateModels = [
-      'gemini-3.8-flash',
-      'gemini-flash-latest',
-      'gemini-3.1-flash-lite',
-    ];
-
-    for (const modelName of candidateModels) {
-      try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: contents,
-          config: {
-            systemInstruction: systemInstruction,
-            temperature: 0.6,
-          },
-        });
-
-        if (response.text) {
-          let cleanText = response.text;
-          cleanText = cleanText.replace(/\s*(?:\(|with|including|\+)?\s*\d+%\s*gst(?:\))?/gi, '');
-          cleanText = cleanText.replace(/"gstPercent"\s*:\s*\d+/g, '"gstPercent": 0');
-          cleanText = cleanText.replace(/"gstRate"\s*:\s*\d+/g, '"gstRate": 0');
-          return { text: cleanText };
-        }
-      } catch (err: any) {
-        console.warn(`Model ${modelName} notice, checking next:`, err?.message || err);
+    const addProductTool: FunctionDeclaration = {
+      name: 'add_product',
+      description: 'Adds a new product/component to the inventory database.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING, description: 'Name of the component' },
+          quantity: { type: Type.NUMBER, description: 'Initial stock quantity' },
+          unitPrice: { type: Type.NUMBER, description: 'Price per unit in INR' },
+          category: { type: Type.STRING, description: 'Component category' },
+          projectId: { type: Type.STRING, description: 'Optional project assignment' },
+          storageLocation: { type: Type.STRING, description: 'Storage location' },
+          vendor: { type: Type.STRING, description: 'Supplier name' },
+          notes: { type: Type.STRING, description: 'Additional details' }
+        },
+        required: ['name', 'quantity', 'unitPrice']
       }
+    };
+
+    const adjustStockTool: FunctionDeclaration = {
+      name: 'adjust_stock',
+      description: 'Updates the stock level for an existing item.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          productId: { type: Type.STRING, description: 'The ID or SKU' },
+          newQuantity: { type: Type.NUMBER, description: 'The new total quantity' },
+          reason: { type: Type.STRING, description: 'Reason for change' }
+        },
+        required: ['productId', 'newQuantity']
+      }
+    };
+
+    const createProjectTool: FunctionDeclaration = {
+      name: 'create_project',
+      description: 'Creates a new engineering project.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING, description: 'Project name' },
+          code: { type: Type.STRING, description: 'Project code' },
+          description: { type: Type.STRING, description: 'Project overview' }
+        },
+        required: ['name']
+      }
+    };
+
+    const deleteProductTool: FunctionDeclaration = {
+      name: 'delete_product',
+      description: 'Permanently removes a product.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          productId: { type: Type.STRING, description: 'The ID or SKU' }
+        },
+        required: ['productId']
+      }
+    };
+
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: contents,
+        config: {
+          systemInstruction: systemInstruction,
+          tools: [{ functionDeclarations: [addProductTool, adjustStockTool, createProjectTool, deleteProductTool] }],
+          temperature: 0.7,
+        },
+      });
+
+      const toolCalls = response.functionCalls;
+      const text = response.text || '';
+
+      if (toolCalls && toolCalls.length > 0) {
+        const actions = toolCalls.map(tc => {
+          const args: any = tc.args || {};
+          if (tc.name === 'add_product') {
+            return {
+              type: 'ADD_PRODUCT',
+              summary: `Add ${args.name} (${args.quantity} units)`,
+              payload: args
+            };
+          }
+          if (tc.name === 'adjust_stock') {
+            return { 
+              type: 'ADJUST_STOCK',
+              summary: `Adjust stock for ${args.productId} to ${args.newQuantity}`,
+              payload: args
+            };
+          }
+          if (tc.name === 'create_project') {
+            return {
+              type: 'CREATE_PROJECT',
+              summary: `Create project ${args.name}`,
+              payload: args
+            };
+          }
+          if (tc.name === 'delete_product') {
+            return {
+              type: 'DELETE_PRODUCT',
+              summary: `Delete item ${args.productId}`,
+              payload: { productId: args.productId }
+            };
+          }
+          return null;
+        }).filter(Boolean);
+
+        return { 
+          text: text || "I've prepared those actions for you.", 
+          action: actions.length > 0 ? actions[0] : undefined,
+          toolCalls: toolCalls 
+        };
+      }
+
+      return { text: text };
+    } catch (err: any) {
+      console.warn('Gemini generateContent error:', err);
     }
   }
 
-  // Autonomous fallback with accurate logic and friendly follow-ups
   return handleAutonomousFallback(message, safeSnapshot);
 }
 
