@@ -73,13 +73,35 @@ export const LabelStudioView: React.FC<LabelStudioViewProps> = ({
   const [previewPage, setPreviewPage] = useState(0);
   const itemsPerPage = 6;
 
-  // Sync initial selection
+  // Sync initial selection whenever navigation props change
   useEffect(() => {
     if (initialProductId) {
       setSelectedProductIds(new Set([initialProductId]));
       setSelectionMode('manual');
+      const prod = products.find(p => p.id === initialProductId);
+      if (prod) {
+        setStartSku(prod.sku);
+        setEndSku(prod.sku);
+      }
+    } else if (initialStartSku) {
+      setStartSku(initialStartSku);
+      setEndSku(initialEndSku || initialStartSku);
+      const prod = products.find(
+        (p) =>
+          (p.sku || '').toUpperCase() === initialStartSku.toUpperCase() ||
+          p.id === initialStartSku
+      );
+      if (prod && (!initialEndSku || initialEndSku.toUpperCase() === initialStartSku.toUpperCase())) {
+        setSelectedProductIds(new Set([prod.id]));
+        setSelectionMode('manual');
+      } else {
+        setSelectionMode('range');
+      }
+    } else if (initialProjectId) {
+      setProjectIdFilter(initialProjectId);
+      setSelectionMode('manual');
     }
-  }, [initialProductId]);
+  }, [initialProductId, initialStartSku, initialEndSku, initialProjectId, products]);
 
   // Compute matched products
   const matchedProducts = useMemo(() => {

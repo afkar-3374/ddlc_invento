@@ -24,25 +24,24 @@ export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{
     stockMovements: Array.isArray(databaseSnapshot?.stockMovements) ? databaseSnapshot.stockMovements : [],
   };
 
-  const systemInstruction = `You're the absolute chillest, most helpful Lab Assistant for DDLC. You're like a senior engineer who's also your best friend—smart, reliable, but super casual.
+  const systemInstruction = `You're the absolute chillest, most helpful DDLC Lab teammate and engineering colleague. You're like a senior engineer who's also a great friend—super casual, friendly, enthusiastic, and reliable.
 
-TONE & STYLE:
-- Casual, warm, and upbeat. Use words like "Yo", "Homie", "Gotcha", "No worries", "Solid", "Let's do this".
-- Be conversational. Don't sound like a bot.
-- If you're doing something, tell them! "Boom, I'm adding that to the database now, homie."
-- NEVER say "As an AI...". Just be a helpful teammate.
+TONE & VIBE:
+- Talk like a real friend and teammate! Use casual, warm language like "Yo!", "Homie", "Gotchu covered!", "Here you go!", "Solid!", "Let's do this!", "No worries at all".
+- Never talk like a robot or corporate machine. Never say "As an AI..." or "According to the verified specifications of Cloud Firestore database...".
+- Be concise, fun, and immediately helpful.
 
-BARCODES & STUDIO:
-- When a user asks for a barcode, YOU MUST use the 'get_product_details' tool. This shows the barcode card.
-- If the user says "show in studio" or wants to print/download, ALWAYS use the 'open_label_studio' tool.
-- The user's goal is usually to get a physical label, so the Label Studio is the place to be.
+BARCODES & STUDIO (CRITICAL):
+- When a user asks for a barcode (e.g. "give me the barcode for DDLC-0001", "show barcode for ESP32", "barcode for servo"):
+  - ALWAYS call 'get_product_details' or 'open_label_studio'.
+  - If the user mentions "studio", "show in studio", "in studio", "print", or wants to see/design the label in studio: ALWAYS call 'open_label_studio'!
+  - Always make sure the barcode and SKU are clearly provided so they can scan it or print it.
 
-CORE KNOWLEDGE:
-- You have access to the Firestore database snapshot. Use it to answer questions about stock, projects, and costs.
-- SKUs are ALWAYS "DDLC-XXXX".
-- Be proactive! If stock is low, mention it.
-
-Let's keep the lab moving and the vibes high!`;
+INVENTORY ACTIONS:
+- When asked to add components, use 'add_product'.
+- When asked to adjust stock, use 'adjust_stock'.
+- When asked about projects, use 'create_project' or answer questions casually.
+- Keep the lab moving fast and keep the good vibes rolling!`;
 
   if (apiKey) {
     const ai = new GoogleGenAI({
@@ -131,12 +130,13 @@ Let's keep the lab moving and the vibes high!`;
 
     const openLabelStudioTool: FunctionDeclaration = {
       name: 'open_label_studio',
-      description: 'Opens the Label Studio for printing and previewing barcodes.',
+      description: 'Opens the Label Studio for previewing, designing, and printing barcodes for a product or SKU.',
       parameters: {
         type: Type.OBJECT,
         properties: {
-          productId: { type: Type.STRING, description: 'Optional: Focus on a specific product ID' },
-          sku: { type: Type.STRING, description: 'Optional: Focus on a specific SKU' },
+          productId: { type: Type.STRING, description: 'Focus on a specific product ID' },
+          sku: { type: Type.STRING, description: 'Focus on a specific SKU (e.g. DDLC-0001)' },
+          searchTerm: { type: Type.STRING, description: 'Component name or search query' },
           projectId: { type: Type.STRING, description: 'Optional: Focus on a specific project' }
         }
       }
@@ -144,12 +144,14 @@ Let's keep the lab moving and the vibes high!`;
 
     const getProductDetailsTool: FunctionDeclaration = {
       name: 'get_product_details',
-      description: 'Shows the full specifications and barcode for a specific item.',
+      description: 'Shows the scannable barcode and specs for a specific component by SKU, ID, or name.',
       parameters: {
         type: Type.OBJECT,
         properties: {
           productId: { type: Type.STRING, description: 'The unique ID of the product' },
-          sku: { type: Type.STRING, description: 'The SKU of the product (e.g. DDLC-0001)' }
+          sku: { type: Type.STRING, description: 'The SKU of the product (e.g. DDLC-0001)' },
+          searchTerm: { type: Type.STRING, description: 'Name or keyword for the product (e.g. ESP32, Servo, OLED)' },
+          openInStudio: { type: Type.BOOLEAN, description: 'Set to true if user wants to see it in Label Studio' }
         },
         required: []
       }
@@ -200,25 +202,51 @@ Let's keep the lab moving and the vibes high!`;
               payload: { productId: args.productId }
             };
           }
-          if (tc.name === 'open_label_studio') {
-            return {
-              type: 'OPEN_STUDIO',
-              summary: `Open Label Studio`,
-              payload: args
-            };
-          }
-          if (tc.name === 'get_product_details') {
+          if (tc.name === 'open_label_studio' || tc.name === 'get_product_details') {
+            // Smart product lookup in safeSnapshot
+            const resolved = findProductInSnapshot(safeSnapshot.products, args, message);
+            const barcodeVal = resolved?.barcode || resolved?.sku || args.sku || 'DDLC-0001';
+            const wantsStudio = tc.name === 'open_label_studio' || args.openInStudio || message.toLowerCase().includes('studio');
+
+            if (wantsStudio) {
+              return {
+                type: 'OPEN_STUDIO',
+                summary: `Open Label Studio for ${resolved?.name || args.sku || 'Component'}`,
+                payload: {
+                  productId: resolved?.id || args.productId,
+                  sku: resolved?.sku || args.sku,
+                  barcode: barcodeVal,
+                  startSku: resolved?.sku || args.sku,
+                  endSku: resolved?.sku || args.sku,
+                  name: resolved?.name,
+                  quantity: resolved?.quantity,
+                  unitPrice: resolved?.unitPrice,
+                }
+              };
+            }
+
             return {
               type: 'SHOW_PRODUCT_DETAILS',
-              summary: `Show details for ${args.sku || args.productId}`,
-              payload: args
+              summary: `Barcode for ${resolved?.name || args.sku || 'Component'} (${resolved?.sku || args.sku || 'DDLC-0001'})`,
+              payload: {
+                productId: resolved?.id || args.productId,
+                sku: resolved?.sku || args.sku,
+                barcode: barcodeVal,
+                name: resolved?.name,
+                category: resolved?.category,
+                quantity: resolved?.quantity,
+                unit: resolved?.unit,
+                unitPrice: resolved?.unitPrice,
+                storageLocation: resolved?.storageLocation,
+                projectId: resolved?.projectId,
+              }
             };
           }
           return null;
         }).filter(Boolean);
 
         return { 
-          text: text || "I've prepared those actions for you.", 
+          text: text || "Yo! I've set that up for you right here, homie.", 
           action: actions.length > 0 ? actions[0] : undefined,
           toolCalls: toolCalls 
         };
@@ -233,6 +261,40 @@ Let's keep the lab moving and the vibes high!`;
   return handleAutonomousFallback(message, safeSnapshot);
 }
 
+function findProductInSnapshot(products: any[], args: any, message: string) {
+  const query = (args?.sku || args?.productId || args?.searchTerm || '').trim().toLowerCase();
+  
+  // 1. Direct SKU or ID match
+  let found = products.find((p: any) => 
+    (args?.productId && p.id === args.productId) ||
+    (args?.sku && (p.sku || '').toUpperCase() === args.sku.toUpperCase()) ||
+    (query && (p.sku || '').toLowerCase() === query) ||
+    (query && (p.barcode || '').toLowerCase() === query)
+  );
+
+  // 2. Query in name
+  if (!found && query) {
+    found = products.find((p: any) => (p.name || '').toLowerCase().includes(query));
+  }
+
+  // 3. Message contains SKU
+  if (!found) {
+    const skuMatch = message.match(/\b(DDLC-[A-Za-z0-9_-]+)\b/i);
+    if (skuMatch) {
+      const s = skuMatch[1].toUpperCase();
+      found = products.find((p: any) => (p.sku || '').toUpperCase() === s || p.id === s);
+    }
+  }
+
+  // 4. Message contains product name
+  if (!found) {
+    const lower = message.toLowerCase();
+    found = products.find((p: any) => p.name && lower.includes(p.name.toLowerCase()));
+  }
+
+  return found || products[0];
+}
+
 function handleAutonomousFallback(message: string, databaseSnapshot: any): { text: string; action?: any } {
   const lowerMsg = message.toLowerCase().trim();
   const products: any[] = databaseSnapshot.products || [];
@@ -245,31 +307,143 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
   const nextNum = products.reduce((max, p) => Math.max(max, p.itemNumber || 0), 0) + 1;
   const nextDefaultSku = `DDLC-${String(nextNum).padStart(4, '0')}`;
 
-  // 1. SPECIFIC SKU LOOKUP: e.g. "Find SKU DDLC-0001" or "DDLC-RES-0001"
+  // 1. BARCODE OR STUDIO REQUEST (Friendly, Casual, Direct!)
+  const isBarcodeOrStudio = 
+    lowerMsg.includes('barcode') || 
+    lowerMsg.includes('studio') || 
+    lowerMsg.includes('label') ||
+    lowerMsg.includes('scan');
+
+  if (isBarcodeOrStudio) {
+    // Check if user wants scanner
+    if (lowerMsg.includes('scan') && !lowerMsg.includes('barcode in studio') && !lowerMsg.includes('show')) {
+      return {
+        text: `Yo! Ready to scan some hardware? 📸 Just click below and your camera will pop right up!`,
+        action: {
+          type: 'SCAN_BARCODE',
+          summary: 'Open Live Barcode Scanner',
+        }
+      };
+    }
+
+    // Identify target product
+    const skuMatch = message.match(/\b(DDLC-[A-Za-z0-9_-]+)\b/i);
+    let matchedProd: any = null;
+    if (skuMatch) {
+      const s = skuMatch[1].toUpperCase();
+      matchedProd = products.find((p) => (p.sku || '').toUpperCase() === s || p.id === s);
+    }
+    if (!matchedProd) {
+      matchedProd = products.find((p) => p.name && lowerMsg.includes(p.name.toLowerCase()));
+    }
+    if (!matchedProd && products.length > 0) {
+      // Check for partial keyword matches
+      const tokens = lowerMsg.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(t => t.length > 2 && !['barcode', 'studio', 'show', 'give', 'want', 'need', 'chat', 'please', 'label', 'print', 'the', 'for'].includes(t));
+      for (const t of tokens) {
+        const found = products.find((p) => (p.name || '').toLowerCase().includes(t) || (p.category || '').toLowerCase().includes(t));
+        if (found) {
+          matchedProd = found;
+          break;
+        }
+      }
+    }
+
+    // Default to first product if none matched specifically
+    if (!matchedProd && products.length > 0) {
+      matchedProd = products[0];
+    }
+
+    const wantsStudio = lowerMsg.includes('studio') || lowerMsg.includes('print');
+
+    if (matchedProd) {
+      const barcodeValue = matchedProd.barcode || matchedProd.sku;
+
+      if (wantsStudio) {
+        return {
+          text: `Yo, gotchu covered! 🎉 Opening **${matchedProd.name}** (\`${matchedProd.sku}\`) in the Label Studio right now so you can preview, adjust dimensions, and print the stickers. Here's your barcode below too!`,
+          action: {
+            type: 'OPEN_STUDIO',
+            summary: `Open Label Studio for ${matchedProd.name} (${matchedProd.sku})`,
+            payload: {
+              productId: matchedProd.id,
+              sku: matchedProd.sku,
+              barcode: barcodeValue,
+              startSku: matchedProd.sku,
+              endSku: matchedProd.sku,
+              name: matchedProd.name,
+              quantity: matchedProd.quantity,
+              unitPrice: matchedProd.unitPrice,
+            }
+          }
+        };
+      }
+
+      return {
+        text: `Yo! Here's the official scannable barcode for **${matchedProd.name}** (\`${matchedProd.sku}\`). You can scan it right off your screen or click **Open in Studio** below to print high-res stickers! 🏷️✨`,
+        action: {
+          type: 'SHOW_PRODUCT_DETAILS',
+          summary: `Barcode for ${matchedProd.name} (${matchedProd.sku})`,
+          payload: {
+            productId: matchedProd.id,
+            sku: matchedProd.sku,
+            barcode: barcodeValue,
+            name: matchedProd.name,
+            category: matchedProd.category || 'General',
+            quantity: matchedProd.quantity || 1,
+            unit: matchedProd.unit || 'pcs',
+            unitPrice: matchedProd.unitPrice || 0,
+            storageLocation: matchedProd.storageLocation || 'Main Lab',
+            projectId: matchedProd.projectId || '',
+          }
+        }
+      };
+    } else {
+      return {
+        text: `Yo homie! I can open up the Label Studio for you right away. What SKU or component do you need labels for? Drop me a name like *"barcode for DDLC-0001"* or click below to browse!`,
+        action: {
+          type: 'OPEN_STUDIO',
+          summary: 'Open Label Studio',
+          payload: {}
+        }
+      };
+    }
+  }
+
+  // 2. SPECIFIC SKU LOOKUP: e.g. "Find SKU DDLC-0001"
   const skuQueryMatch = message.match(/\b(DDLC-[A-Za-z0-9_-]+)\b/i);
   if (skuQueryMatch || lowerMsg.startsWith('find sku') || lowerMsg.startsWith('show sku') || lowerMsg.startsWith('lookup')) {
     const targetSku = skuQueryMatch ? skuQueryMatch[1].toUpperCase() : '';
     const found = products.find((p) => (p.sku || '').toUpperCase() === targetSku || p.id === targetSku);
 
     if (found) {
-      const projName = projects.find((pr) => pr.id === found.projectId)?.name || 'Not assigned';
-      const poCount = purchases.filter((po) => po.productId === found.id).length;
+      const projName = projects.find((pr) => pr.id === found.projectId)?.name || 'General Stock';
       return {
-        text: `Here are the verified specifications for **${found.name}**:\n\n• **SKU**: \`${found.sku}\`\n• **Barcode**: \`${found.barcode || found.sku}\`\n• **Category**: ${found.category || 'General'}\n• **Current Stock**: ${found.quantity} ${found.unit || 'pcs'}\n• **Unit Purchase Cost**: ${formatINR(found.unitPrice)}\n• **Stock Valuation**: ${formatINR(found.quantity * found.unitPrice)}\n• **Storage Location**: ${found.storageLocation || 'Main Lab'}\n• **Allocated Project**: ${projName}\n• **Supplier**: ${found.vendor || 'Not recorded'}\n• **Specifications**: ${found.description || 'Standard hardware specifications'}\n• **Purchase History**: ${poCount} Purchase Orders on record.`,
+        text: `Found it, homie! Here's the lowdown on **${found.name}** (\`${found.sku}\`):\n\n• **Stock**: ${found.quantity} ${found.unit || 'pcs'} in ${found.storageLocation || 'Main Lab'}\n• **Cost**: ${formatINR(found.unitPrice)} each (Total: ${formatINR((found.quantity || 0) * (found.unitPrice || 0))})\n• **Project**: ${projName}\n• **Barcode**: \`${found.barcode || found.sku}\`\n\nI've got the barcode ready for you below—you can view specs or open it right up in the studio!`,
         action: {
           type: 'SHOW_PRODUCT_DETAILS',
-          summary: `Details for ${found.name} (${found.sku})`,
-          payload: { productId: found.id, sku: found.sku },
+          summary: `Barcode & details for ${found.name} (${found.sku})`,
+          payload: {
+            productId: found.id,
+            sku: found.sku,
+            barcode: found.barcode || found.sku,
+            name: found.name,
+            category: found.category,
+            quantity: found.quantity,
+            unit: found.unit,
+            unitPrice: found.unitPrice,
+            storageLocation: found.storageLocation,
+            projectId: found.projectId,
+          },
         },
       };
     } else if (targetSku) {
       return {
-        text: `I searched our Cloud Firestore records, but SKU **${targetSku}** was not found in active inventory.\n\nWould you like me to register a new component under **${targetSku}**? If so, just tell me the component name, quantity, and unit cost!`,
+        text: `Hey, I checked our Firestore records and didn't spot SKU **${targetSku}** yet.\n\nWant me to add it as a new component? Just tell me what it is, like: *"Add 10x Raspberry Pi Pico at ₹450 as ${targetSku}"*!`,
       };
     }
   }
 
-  // 2. PROJECT COST INQUIRY: Clarify Purchase Cost vs Allocated Stock Value
+  // 3. PROJECT COST INQUIRY
   if (
     (lowerMsg.includes('cost') || lowerMsg.includes('expenditure') || lowerMsg.includes('budget') || lowerMsg.includes('how much')) &&
     (projects.some((pr) => lowerMsg.includes(pr.name.toLowerCase()) || lowerMsg.includes(pr.code.toLowerCase())) || lowerMsg.includes('project'))
@@ -284,117 +458,12 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
       const allocatedStockVal = allocatedParts.reduce((acc, p) => acc + (p.quantity * p.unitPrice), 0);
 
       return {
-        text: `Great question! When calculating financial costs for **${targetProj.name}** (\`${targetProj.code}\`), we track two distinct figures:\n\n1. 🧾 **Total Recorded Purchase Expenditure**: **${formatINR(totalPoSpend)}**\n   *(Sum of all ${projPurchases.length} procurement orders & supplier invoices booked to this project)*\n\n2. 📦 **Current Allocated Stock Valuation**: **${formatINR(allocatedStockVal)}**\n   *(Current value of the ${allocatedParts.length} components physically on hand allocated to this project)*\n\n• **Project Status**: ${targetProj.status || 'Active'}\n\nWould you like an itemized BOM list of the components assigned to **${targetProj.name}**, or should I generate barcode labels for this project's parts?`,
+        text: `Here's what we've got invested in **${targetProj.name}** (\`${targetProj.code}\`), homie:\n\n1. 🧾 **Total Purchase Invoices**: **${formatINR(totalPoSpend)}** (${projPurchases.length} supplier orders)\n2. 📦 **Current Parts on Shelf**: **${formatINR(allocatedStockVal)}** (${allocatedParts.length} components assigned)\n\nWant me to show you the components for this project or generate their barcode labels?`,
       };
     }
   }
 
-  // 3. AMBIGUOUS LABEL OR SCAN REQUEST -> ASK FOLLOW-UP QUESTION!
-  if (
-    lowerMsg === 'generate barcode labels' ||
-    lowerMsg === 'generate labels' ||
-    lowerMsg === 'give barcodes' ||
-    lowerMsg === 'show barcodes' ||
-    lowerMsg === 'print labels' ||
-    lowerMsg === 'barcodes' ||
-    lowerMsg === 'labels' ||
-    lowerMsg.includes('scan') ||
-    lowerMsg.includes('studio')
-  ) {
-    if (lowerMsg.includes('scan')) {
-      return {
-        text: `Oh, you want to scan something? I can definitely help with that! I've got a live scanner ready to go. Just click the button below and your camera will spring to life!`,
-        action: {
-          type: 'SCAN_BARCODE',
-          summary: 'Open Live Barcode Scanner',
-        }
-      };
-    }
-    if (lowerMsg.includes('studio')) {
-      return {
-        text: `You got it! Opening up the Label Studio for you. You can preview, tweak, and download all your barcodes there.`,
-        action: {
-          type: 'OPEN_STUDIO',
-          summary: 'Open Label Studio',
-          payload: {}
-        }
-      };
-    }
-    return {
-      text: `Sure! I can generate official Code 128 barcode labels for you right away. Which labels would you like to prepare?\n\n• **All inventory items** (${products.length} registered parts)\n• **A specific SKU range** (e.g., *"Generate labels from DDLC-0001 to DDLC-0010"*)\n• **Items from a particular project** (e.g., *"Generate labels for Beta 2"*)\n• **Selected products** (e.g., *"Generate barcode for ESP32"*)\n\nJust let me know your preference, or reply with *"All"* and I'll generate the complete sticker sheet!`,
-    };
-  }
-
-  // 4. SPECIFIC LABEL GENERATION (SKU range or project)
-  if (lowerMsg.includes('label') || lowerMsg.includes('barcode')) {
-    const skuRangeMatch = message.match(/([A-Za-z0-9_-]+)\s+to\s+([A-Za-z0-9_-]+)/i);
-    let matched = [...products];
-    let rangeExplanation = 'all inventory components';
-
-    if (skuRangeMatch) {
-      const sStart = skuRangeMatch[1].toUpperCase();
-      const sEnd = skuRangeMatch[2].toUpperCase();
-      matched = matched.filter((p) => {
-        const s = (p.sku || '').toUpperCase();
-        return s >= sStart && s <= sEnd;
-      });
-      rangeExplanation = `SKU range ${sStart} to ${sEnd}`;
-    } else {
-      const projMatch = projects.find((pr) => lowerMsg.includes(pr.name.toLowerCase()));
-      if (projMatch) {
-        matched = matched.filter((p) => p.projectId === projMatch.id);
-        rangeExplanation = `project ${projMatch.name}`;
-      } else {
-        const partMatch = products.filter((p) => lowerMsg.includes(p.name.toLowerCase()));
-        if (partMatch.length > 0) {
-          matched = partMatch;
-          rangeExplanation = `selected part (${matched.map((m) => m.name).join(', ')})`;
-        }
-      }
-    }
-
-    const previewItems = matched.slice(0, 8).map((p) => ({
-      sku: p.sku || `DDLC-${String(p.itemNumber || 1).padStart(4, '0')}`,
-      barcode: p.barcode || p.sku || `DDLC-${String(p.itemNumber || 1).padStart(4, '0')}`,
-      name: p.name,
-      category: p.category || 'General',
-      quantity: p.quantity || 1,
-      unitPrice: p.unitPrice || 0,
-    }));
-
-    const actionPayload = {
-      type: 'GENERATE_LABELS',
-      summary: `Barcode Labels for ${matched.length} items (${rangeExplanation})`,
-      payload: {
-        startSku: skuRangeMatch ? skuRangeMatch[1].toUpperCase() : '',
-        endSku: skuRangeMatch ? skuRangeMatch[2].toUpperCase() : '',
-        copies: 1,
-        sizeId: 'standard-50-25',
-        items: previewItems,
-      },
-    };
-
-    return {
-      text: `I checked our Cloud Firestore database and found **${matched.length} matching products** for ${rangeExplanation}!\n\nAll items use official Code 128 barcodes starting with \`DDLC-\`. I've prepared the print-ready label batch below. You can download the PDF or inspect the scannable barcode stickers:\n\n\`\`\`action\n${JSON.stringify(actionPayload, null, 2)}\n\`\`\``,
-      action: actionPayload,
-    };
-  }
-
-  // 5. INCOMPLETE "ADD COMPONENT" -> ASK FOLLOW-UP QUESTION!
-  if (
-    lowerMsg === 'add component' ||
-    lowerMsg === 'add a component' ||
-    lowerMsg === 'add item' ||
-    lowerMsg === 'add a new component' ||
-    lowerMsg === 'add new item' ||
-    lowerMsg === 'add product'
-  ) {
-    return {
-      text: `I'd love to help add a component to your inventory! To prepare the record with an official \`${nextDefaultSku}\` SKU, could you tell me:\n\n1. **Component Name** (e.g. Raspberry Pi Pico W)\n2. **Quantity** (e.g. 10 pcs)\n3. **Unit Purchase Price** (e.g. ₹450)\n4. *(Optional)* Project to assign it to (e.g. Beta 2)\n\nYou can reply in a single sentence like: *"Add 10 Raspberry Pi Pico at ₹450 for Beta 2"*!`,
-    };
-  }
-
-  // 6. ADD NEW COMPONENT WITH DETAILS
+  // 4. ADD NEW COMPONENT WITH DETAILS
   if (lowerMsg.startsWith('add ') || lowerMsg.includes('bought ') || lowerMsg.includes('purchased ')) {
     const qtyMatch = message.match(/(\d+)\s*(?:x|pcs|units|pieces)?/i);
     const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
@@ -418,11 +487,28 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
     const projName = projMatch ? projMatch.name : (projTarget || 'General Stock');
 
     return {
-      text: `I've prepared the addition for you!\n\n✨ **Assigned SKU**: \`${assignedSku}\`\n🏷️ **Barcode**: \`${assignedSku}\`\n• **Product**: ${prodName}\n• **Quantity**: ${qty} pcs\n• **Unit Cost**: ${formatINR(price)}\n• **Total Cost**: ${formatINR(qty * price)} (0% GST)\n• **Assigned Project**: ${projName}\n• **Storage Location**: Main Lab Bin\n\nPlease verify the summary and click **Confirm & Save to Firestore** below to persist this record: \n\n\`\`\`action\n{\n  "type": "ADD_PRODUCT",\n  "summary": "Add ${prodName} (${qty} pcs @ ${formatINR(price)})",\n  "payload": {\n    "name": "${prodName}",\n    "sku": "${assignedSku}",\n    "barcode": "${assignedSku}",\n    "category": "Microcontrollers",\n    "quantity": ${qty},\n    "unit": "pcs",\n    "unitPrice": ${price},\n    "gstPercent": 0,\n    "projectId": "${projTarget}",\n    "storageLocation": "Main Lab",\n    "notes": "Added via DDLC AI Assistant"\n  }\n}\n\`\`\``,
+      text: `Boom! Prepared that addition for you, homie:\n\n✨ **${prodName}** (${qty} pcs @ ${formatINR(price)})\n🏷️ **SKU & Barcode**: \`${assignedSku}\`\n📁 **Project**: ${projName}\n\nClick **Confirm & Save to Firestore** below to make it official:`,
+      action: {
+        type: 'ADD_PRODUCT',
+        summary: `Add ${prodName} (${qty} pcs @ ${formatINR(price)})`,
+        payload: {
+          name: prodName,
+          sku: assignedSku,
+          barcode: assignedSku,
+          category: 'Microcontrollers',
+          quantity: qty,
+          unit: 'pcs',
+          unitPrice: price,
+          gstPercent: 0,
+          projectId: projTarget,
+          storageLocation: 'Main Lab',
+          notes: 'Added via DDLC AI Assistant',
+        },
+      },
     };
   }
 
-  // 7. INVENTORY ANALYSIS RESULTS
+  // 5. INVENTORY ANALYSIS RESULTS
   if (
     lowerMsg.includes('analy') ||
     lowerMsg.includes('report') ||
@@ -433,47 +519,24 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
     const totalUnits = products.reduce((acc, p) => acc + (Number(p.quantity) || 0), 0);
     const totalVal = products.reduce((acc, p) => acc + ((Number(p.quantity) || 0) * (Number(p.unitPrice) || 0)), 0);
     const lowStock = products.filter((p) => (Number(p.quantity) || 0) <= 5);
-    const topAssets = [...products]
-      .sort((a, b) => ((b.quantity || 0) * (b.unitPrice || 0)) - ((a.quantity || 0) * (a.unitPrice || 0)))
-      .slice(0, 3);
 
     return {
-      text: `Hello! Here is the complete hardware analysis of our DDLC inventory:\n\n### 📊 Executive Summary\n• **Registered Products**: ${products.length} unique parts in Cloud Firestore\n• **Physical Inventory Units**: ${totalUnits.toLocaleString()} units on shelves and workbench bins\n• **Total Stock Valuation**: **${formatINR(totalVal)}** *(0% GST, calculated from unit purchase costs)*\n• **Active Hardware Projects**: ${projects.length}\n\n### 🏆 Top Hardware Assets by Valuation\n${
-        topAssets.length > 0
-          ? topAssets.map((p, i) => `${i + 1}. **${p.name}** (\`${p.sku}\`) — ${p.quantity} pcs @ ${formatINR(p.unitPrice)} (Valuation: ${formatINR((p.quantity || 0) * (p.unitPrice || 0))})`).join('\n')
-          : '• *No components currently in inventory.*'
-      }\n\n### ⚠️ Stock Health & Alerts\n• **Low Stock Items (≤ 5 units)**: ${lowStock.length} items (${lowStock.map((p) => p.name).join(', ') || 'All stock levels optimal'})\n• **Barcode Readiness**: 100% of SKUs follow the standardized Code 128 \`DDLC-\` format.\n\nWould you like me to generate purchase reorders for the ${lowStock.length} low-stock items or print barcode labels for your storage bins?`,
+      text: `Here's our lab stock snapshot, homie! 🚀\n\n• **Total Unique Parts**: ${products.length} components registered\n• **Total Physical Units**: ${totalUnits.toLocaleString()} units on shelves\n• **Inventory Valuation**: **${formatINR(totalVal)}**\n• **Active Projects**: ${projects.length}\n• **Low Stock Notice (≤5 units)**: ${lowStock.length > 0 ? lowStock.map(p => `${p.name} (${p.quantity} left)`).join(', ') : 'All stock levels looking healthy!'}\n\nNeed me to whip up barcode labels or help reorder any parts?`,
     };
   }
 
-  // 8. SUPPLIER / VENDOR INQUIRY: e.g. "Show purchases from Robu"
-  if (lowerMsg.includes('robu') || lowerMsg.includes('supplier') || lowerMsg.includes('vendor') || lowerMsg.includes('mouser')) {
-    const vendorName = vendors.find((v) => lowerMsg.includes(v.name.toLowerCase()))?.name || (lowerMsg.includes('robu') ? 'Robu.in' : 'Mouser India');
-    const matchedPurchases = purchases.filter((po) => (po.vendorNameSnapshot || '').toLowerCase().includes(vendorName.toLowerCase()));
-    const totalSpent = matchedPurchases.reduce((acc, po) => acc + (Number(po.invoiceTotal) || 0), 0);
-
-    return {
-      text: `Here is the purchase record summary for **${vendorName}**:\n\n• **Total Orders Recorded**: ${matchedPurchases.length} Purchase Orders\n• **Lifetime Procurement Spend**: **${formatINR(totalSpent)}**\n\n${
-        matchedPurchases.length > 0
-          ? matchedPurchases.slice(0, 5).map((po) => `  • **${po.purchaseNumber || 'PO'}**: ${po.productNameSnapshot} (${po.quantity} pcs) — ${formatINR(po.invoiceTotal)} [${po.purchaseDate || 'Recent'}]`).join('\n')
-          : '• *No purchase orders currently filed under this supplier.*'
-      }\n\nWould you like me to generate a supplier statement or record a new invoice from **${vendorName}**?`,
-    };
-  }
-
-  // Default welcoming assistant response
+  // 6. Default welcoming assistant response
   return {
     text: `Yo! I'm your DDLC Lab assistant. 👋
 
-I'm here to help you keep this place running smooth. I can check our stock, analyze costs, generate barcodes, or help you add new parts to the system.
+I'm here to keep our workbench organized and running smooth. You can ask me to:
+• "Give me the barcode for DDLC-0001 in studio"
+• "Show barcode for ESP32"
+• "Add 10x Raspberry Pi Pico at ₹450 to Rover"
+• "How much did Beta 2 cost?"
+• "Give detailed inventory analysis"
 
-Feel free to ask me things like:
-• "Yo, how's our stock looking?"
-• "Find SKU DDLC-0001"
-• "Add 10x ESP32 at ₹450 for the Rover project"
-• "Homie, I need some barcodes for our sensors"
-
-What's on the workbench today?`,
+What can I grab for you, homie?`,
   };
 }
 

@@ -61,6 +61,7 @@ interface AiAssistantViewProps {
     endSku?: string;
     productId?: string;
     projectId?: string;
+    sku?: string;
   }) => void;
   isDrawer?: boolean;
   onClose?: () => void;
@@ -244,11 +245,11 @@ What's on the workbench today?`,
   }, [initialPrompt]);
 
   const samplePrompts = [
-    'Generate barcode labels',
+    'Barcode for DDLC-0001 in studio',
+    'Show barcode for ESP32',
     'How much did Beta 2 cost?',
     'Give detailed inventory analysis',
     'Add 5x ESP32 at ₹450 to Rover',
-    'Find low stock components',
     'Show purchases from Robu',
   ];
 
@@ -516,6 +517,16 @@ What's on the workbench today?`,
       };
 
       setMessages((prev) => [...prev, modelMsg]);
+
+      // If user requested studio or action is OPEN_STUDIO, navigate smoothly after brief display
+      if (
+        (proposedAction?.type === 'OPEN_STUDIO' || textToSend.toLowerCase().includes('studio')) &&
+        onNavigateToStudio
+      ) {
+        setTimeout(() => {
+          onNavigateToStudio(proposedAction?.payload || {});
+        }, 850);
+      }
     } catch (err: any) {
       console.warn('AI Assistant error, falling back:', err);
       const errorMsg: ChatMessage = {
@@ -733,71 +744,112 @@ What's on the workbench today?`,
                     )}
 
                     {/* 1c. Open Studio Action */}
-                    {m.action.type === 'OPEN_STUDIO' && (
-                      <div className="p-4 rounded-2xl bg-[#F0F9F2] border border-[#CDE3D2] space-y-2.5">
-                        <div className="flex items-center gap-2 text-xs font-bold text-[#168653]">
-                          <Layout className="w-4 h-4" />
-                          <span>{m.action.summary || 'Label Studio'}</span>
+                    {m.action.type === 'OPEN_STUDIO' && (() => {
+                      const payload = m.action!.payload || {};
+                      const prod = products.find(
+                        (p) =>
+                          p.id === payload.productId ||
+                          (payload.sku && (p.sku || '').toUpperCase() === payload.sku.toUpperCase()) ||
+                          (payload.barcode && (p.barcode || '').toUpperCase() === payload.barcode.toUpperCase()) ||
+                          (payload.name && p.name.toLowerCase().includes(payload.name.toLowerCase()))
+                      );
+                      const displaySku = prod?.sku || payload.sku || payload.startSku || 'DDLC-0001';
+                      const barcodeVal = payload.barcode || prod?.barcode || prod?.sku || payload.sku || payload.startSku || '';
+                      const displayName = prod?.name || payload.name || 'Component';
+
+                      return (
+                        <div className="p-4 rounded-2xl bg-[#F0F9F2] border border-[#CDE3D2] space-y-3 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs font-bold text-[#168653]">
+                              <Layout className="w-4 h-4" />
+                              <span>{m.action.summary || 'Ready in Label Studio'}</span>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#168653] border border-[#CDE3D2]">
+                              Studio Active
+                            </span>
+                          </div>
+
+                          <div className="text-xs text-[#25352C] font-semibold">
+                            {displayName} <span className="font-mono text-[#168653] font-bold">({displaySku})</span>
+                          </div>
+
+                          {barcodeVal && (
+                            <div className="flex flex-col items-center justify-center p-3.5 bg-white border border-[#E6EDE7] rounded-xl shadow-2xs">
+                              <Barcode 
+                                value={barcodeVal} 
+                                width={1.3}
+                                height={42}
+                                fontSize={10}
+                                margin={0}
+                                background="transparent"
+                              />
+                              <div className="mt-1.5 text-[10px] font-mono text-[#77857C] font-semibold">
+                                Code 128 • Ready for Industrial Printing
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="text-[11px] text-[#77857C]">
+                            Loaded up in Label Studio. You can preview, adjust label sizes, customize metadata, and print high-res PDF sticker sheets.
+                          </div>
+
+                          <button
+                            onClick={() => onNavigateToStudio?.({ productId: prod?.id || payload.productId, sku: displaySku, startSku: displaySku, endSku: displaySku })}
+                            className="w-full px-4 py-2.5 rounded-xl bg-[#168653] hover:bg-[#126b42] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer active:scale-95"
+                          >
+                            <Tag className="w-4 h-4" />
+                            <span>View & Print in Label Studio</span>
+                          </button>
                         </div>
-                        <div className="text-[11px] text-[#77857C]">
-                          Design, preview, and download your barcode labels in the studio.
-                        </div>
-                        <button
-                          onClick={() => onNavigateToStudio?.(m.action!.payload)}
-                          className="w-full px-3.5 py-2 rounded-xl bg-[#168653] hover:bg-[#126b42] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
-                        >
-                          <Tag className="w-4 h-4" />
-                          <span>Open Label Studio</span>
-                        </button>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* 2. Show Product Details Action */}
                     {m.action.type === 'SHOW_PRODUCT_DETAILS' && (() => {
+                      const payload = m.action!.payload || {};
                       const prod = products.find(
                         (p) =>
-                          p.id === m.action!.payload?.productId ||
-                          p.sku === m.action!.payload?.sku
+                          p.id === payload.productId ||
+                          (payload.sku && (p.sku || '').toUpperCase() === payload.sku.toUpperCase()) ||
+                          (payload.barcode && (p.barcode || '').toUpperCase() === payload.barcode.toUpperCase()) ||
+                          (payload.name && p.name.toLowerCase().includes(payload.name.toLowerCase()))
                       );
+                      const displaySku = prod?.sku || payload.sku || 'DDLC-0001';
+                      const barcodeVal = payload.barcode || prod?.barcode || prod?.sku || payload.sku || 'DDLC-0001';
+                      const displayName = prod?.name || payload.name || 'Component';
+
                       return (
-                        <div className="p-4 rounded-2xl bg-white border border-[#E6EDE7] space-y-2.5 shadow-2xs">
+                        <div className="p-4 rounded-2xl bg-white border border-[#E6EDE7] space-y-3 shadow-2xs">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-mono font-bold text-[#168653] px-2 py-0.5 rounded-lg bg-[#E5F5E9] border border-[#CDE3D2]" title="SKU">
-                                {m.action.payload?.sku || prod?.sku}
+                                {displaySku}
                               </span>
-                              {(m.action.payload?.barcode || prod?.barcode) && (
-                                <span className="text-xs font-mono font-medium text-[#77857C] px-2 py-0.5 rounded-lg bg-[#F5F9F6] border border-[#E6EDE7]" title="Barcode">
-                                  {m.action.payload?.barcode || prod?.barcode}
-                                </span>
-                              )}
                               <span className="text-xs font-bold text-[#174D35] truncate max-w-[200px]">
-                                {prod?.name || 'Inventory Record'}
+                                {displayName}
                               </span>
                             </div>
                             {prod && (
-                              <span className="text-[11px] text-[#77857C]">
+                              <span className="text-[11px] text-[#77857C] font-semibold">
                                 Stock: {prod.quantity} {prod.unit}
                               </span>
                             )}
                           </div>
 
-                          {(m.action.payload?.barcode || prod?.barcode) ? (
-                            <div className="flex flex-col items-center justify-center p-3 bg-white border border-[#F0F5F2] rounded-xl">
-                              <Barcode 
-                                value={m.action.payload?.barcode || prod?.barcode || ''} 
-                                width={1.2}
-                                height={40}
-                                fontSize={10}
-                                margin={0}
-                                background="transparent"
-                              />
+                          {/* Scannable Barcode */}
+                          <div className="flex flex-col items-center justify-center p-3.5 bg-white border border-[#E6EDE7] rounded-xl shadow-2xs">
+                            <Barcode 
+                              value={barcodeVal} 
+                              width={1.4}
+                              height={44}
+                              fontSize={11}
+                              margin={0}
+                              background="transparent"
+                            />
+                            <div className="mt-1.5 text-[10px] font-mono text-[#77857C] font-semibold">
+                              Code 128 • Official DDLC Format
                             </div>
-                          ) : (
-                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-700 font-medium">
-                              Barcode data unavailable for this item.
-                            </div>
-                          )}
+                          </div>
 
                           {prod && (
                             <div className="grid grid-cols-2 gap-2 text-xs bg-[#F5F9F6] p-2.5 rounded-xl border border-[#E6EDE7]">
@@ -808,24 +860,24 @@ What's on the workbench today?`,
                             </div>
                           )}
 
-                          <div className="flex flex-wrap gap-2">
-                            {prod && onOpenItemDetails && (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {onNavigateToStudio && (
                               <button
-                                onClick={() => onOpenItemDetails(prod)}
-                                className="px-3 py-1.5 rounded-xl bg-[#E5F5E9] hover:bg-[#d8eedd] text-[#168653] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                                onClick={() => onNavigateToStudio({ productId: prod?.id || payload.productId, sku: displaySku, startSku: displaySku, endSku: displaySku })}
+                                className="flex-1 py-2 px-3 rounded-xl bg-[#168653] hover:bg-[#126b42] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
                               >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                <span>Full Record</span>
+                                <Tag className="w-3.5 h-3.5" />
+                                <span>Open in Label Studio</span>
                               </button>
                             )}
 
-                            {onNavigateToStudio && (
+                            {prod && onOpenItemDetails && (
                               <button
-                                onClick={() => onNavigateToStudio({ productId: prod?.id, startSku: prod?.sku, endSku: prod?.sku })}
-                                className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                                onClick={() => onOpenItemDetails(prod)}
+                                className="px-3.5 py-2 rounded-xl bg-[#E5F5E9] hover:bg-[#d8eedd] text-[#168653] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                               >
-                                <Tag className="w-3.5 h-3.5 text-[#168653]" />
-                                <span>Open in Studio</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span>Specs</span>
                               </button>
                             )}
                           </div>

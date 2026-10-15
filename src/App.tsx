@@ -66,7 +66,7 @@ function AppContent() {
 
   const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
   const [labelsModalOptions, setLabelsModalOptions] = useState<
-    { startSku?: string; endSku?: string; productId?: string; projectId?: string } | undefined
+    { startSku?: string; endSku?: string; productId?: string; projectId?: string; sku?: string } | undefined
   >(undefined);
   const [isPwaModalForced, setIsPwaModalForced] = useState(false);
 
