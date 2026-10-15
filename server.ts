@@ -1,7 +1,12 @@
 import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { handleAssistantQuery, handleAiParseItem } from './src/server/assistantHandler.ts';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
@@ -53,9 +58,11 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const { createServer } = await import('vite');
     const vite = await createServer({
+      configFile: path.resolve(__dirname, 'vite.config.ts'),
       server: { 
         middlewareMode: true, 
-        hmr: { overlay: false } 
+        hmr: false,
+        watch: null,
       },
       appType: 'spa',
     });

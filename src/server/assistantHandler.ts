@@ -24,25 +24,36 @@ export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{
     stockMovements: Array.isArray(databaseSnapshot?.stockMovements) ? databaseSnapshot.stockMovements : [],
   };
 
-  const systemInstruction = `You're a super friendly, totally casual Lab Assistant for DDLC. Think of yourself as a helpful lab-mate who's part of the team, not just a bot.
+  const systemInstruction = `You're the absolute chillest, most helpful Lab Assistant for DDLC. You're like a senior engineer who's also your best friend—smart, reliable, but super casual.
 
 TONE & STYLE:
-- Be warm, upbeat, and very conversational.
-- Use natural expressions (e.g., "Hey there!", "Oh, for sure!", "I've got you covered!", "Let me check that for you...").
-- Keep the conversation flowing. Refer back to previous messages and keep things feeling like a continuous chat.
-- Don't be formal or robotic. Keep it chill and helpful!
+- Casual, warm, and upbeat. Use words like "Yo", "Homie", "Gotcha", "No worries", "Solid", "Let's do this".
+- Be conversational. Don't sound like a FAQ page or a bot.
+- If you're doing something, tell them! "Boom, I'm adding that to the database now, homie."
+- NEVER say "As an AI...". Just be a helpful teammate.
+- Use emojis naturally but don't overdo it. 🚀✨
 
-CORE PRINCIPLES:
-1. BE PROACTIVE: If someone says "Add 10 ESP32", don't just talk about it—actually trigger the 'add_product' tool immediately. 
-2. BE AN AGENT: When you use a tool, explain what you did in a friendly way (e.g., "Alright! I've officially added those 10 ESP32s to our Firestore records for the Rover project. What else can I help with?").
-3. SKUs: Always ensure new products get a proper SKU starting with "DDLC-".
-4. CONTEXT IS KEY: Use the database snapshot and chat history to give smart, contextual advice.
+BARCODES & STUDIO:
+- When a user asks for a barcode, YOU MUST use the 'get_product_details' tool. This tool shows the barcode card in the chat.
+- After showing the barcode, ALWAYS offer to open the "Label Studio" so they can print or download it properly. 
+- If they seem to want to manage labels for a project or multiple items, use the 'open_label_studio' tool directly.
+- The user's goal is usually to get a physical label, so the Label Studio is your best friend.
 
-Stay helpful, be a great teammate, and let's get this lab organized!`;
+CORE KNOWLEDGE:
+- You have access to the Firestore database snapshot. Use it to answer questions about stock, projects, and costs.
+- SKUs are ALWAYS "DDLC-XXXX".
+- Be proactive! If stock is low, mention it like a bro: "Hey, we're running low on these sensors, might want to grab some more."
+
+Let's keep the lab moving and the vibes high!`;
 
   if (apiKey) {
     const ai = new GoogleGenAI({
       apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
     });
 
     const contents: any[] = [];
@@ -72,6 +83,8 @@ Stay helpful, be a great teammate, and let's get this lab organized!`;
           projectId: { type: Type.STRING, description: 'Optional project assignment' },
           storageLocation: { type: Type.STRING, description: 'Storage location' },
           vendor: { type: Type.STRING, description: 'Supplier name' },
+          sku: { type: Type.STRING, description: 'Optional custom SKU (starts with DDLC-)' },
+          barcode: { type: Type.STRING, description: 'Optional custom barcode' },
           notes: { type: Type.STRING, description: 'Additional details' }
         },
         required: ['name', 'quantity', 'unitPrice']
@@ -118,13 +131,39 @@ Stay helpful, be a great teammate, and let's get this lab organized!`;
       }
     };
 
+    const openLabelStudioTool: FunctionDeclaration = {
+      name: 'open_label_studio',
+      description: 'Opens the Label Studio for printing and previewing barcodes.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          productId: { type: Type.STRING, description: 'Optional: Focus on a specific product ID' },
+          sku: { type: Type.STRING, description: 'Optional: Focus on a specific SKU' },
+          projectId: { type: Type.STRING, description: 'Optional: Focus on a specific project' }
+        }
+      }
+    };
+
+    const getProductDetailsTool: FunctionDeclaration = {
+      name: 'get_product_details',
+      description: 'Shows the full specifications and barcode for a specific item.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          productId: { type: Type.STRING, description: 'The unique ID of the product' },
+          sku: { type: Type.STRING, description: 'The SKU of the product (e.g. DDLC-0001)' }
+        },
+        required: []
+      }
+    };
+
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-3.8-flash',
         contents: contents,
         config: {
           systemInstruction: systemInstruction,
-          tools: [{ functionDeclarations: [addProductTool, adjustStockTool, createProjectTool, deleteProductTool] }],
+          tools: [{ functionDeclarations: [addProductTool, adjustStockTool, createProjectTool, deleteProductTool, openLabelStudioTool, getProductDetailsTool] }],
           temperature: 0.8,
         },
       });
@@ -161,6 +200,20 @@ Stay helpful, be a great teammate, and let's get this lab organized!`;
               type: 'DELETE_PRODUCT',
               summary: `Delete item ${args.productId}`,
               payload: { productId: args.productId }
+            };
+          }
+          if (tc.name === 'open_label_studio') {
+            return {
+              type: 'OPEN_STUDIO',
+              summary: `Open Label Studio`,
+              payload: args
+            };
+          }
+          if (tc.name === 'get_product_details') {
+            return {
+              type: 'SHOW_PRODUCT_DETAILS',
+              summary: `Show details for ${args.sku || args.productId}`,
+              payload: args
             };
           }
           return null;
@@ -204,7 +257,7 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
       const projName = projects.find((pr) => pr.id === found.projectId)?.name || 'Not assigned';
       const poCount = purchases.filter((po) => po.productId === found.id).length;
       return {
-        text: `Here are the verified specifications for **${found.name}** (\`${found.sku}\`):\n\n• **Category**: ${found.category || 'General'}\n• **Current Stock**: ${found.quantity} ${found.unit || 'pcs'}\n• **Unit Purchase Cost**: ${formatINR(found.unitPrice)}\n• **Stock Valuation**: ${formatINR(found.quantity * found.unitPrice)}\n• **Storage Location**: ${found.storageLocation || 'Main Lab'}\n• **Allocated Project**: ${projName}\n• **Supplier**: ${found.vendor || 'Not recorded'}\n• **Specifications**: ${found.description || 'Standard hardware specifications'}\n• **Purchase History**: ${poCount} Purchase Orders on record.`,
+        text: `Here are the verified specifications for **${found.name}**:\n\n• **SKU**: \`${found.sku}\`\n• **Barcode**: \`${found.barcode || found.sku}\`\n• **Category**: ${found.category || 'General'}\n• **Current Stock**: ${found.quantity} ${found.unit || 'pcs'}\n• **Unit Purchase Cost**: ${formatINR(found.unitPrice)}\n• **Stock Valuation**: ${formatINR(found.quantity * found.unitPrice)}\n• **Storage Location**: ${found.storageLocation || 'Main Lab'}\n• **Allocated Project**: ${projName}\n• **Supplier**: ${found.vendor || 'Not recorded'}\n• **Specifications**: ${found.description || 'Standard hardware specifications'}\n• **Purchase History**: ${poCount} Purchase Orders on record.`,
         action: {
           type: 'SHOW_PRODUCT_DETAILS',
           summary: `Details for ${found.name} (${found.sku})`,
@@ -247,7 +300,8 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
     lowerMsg === 'print labels' ||
     lowerMsg === 'barcodes' ||
     lowerMsg === 'labels' ||
-    lowerMsg.includes('scan')
+    lowerMsg.includes('scan') ||
+    lowerMsg.includes('studio')
   ) {
     if (lowerMsg.includes('scan')) {
       return {
@@ -255,6 +309,16 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
         action: {
           type: 'SCAN_BARCODE',
           summary: 'Open Live Barcode Scanner',
+        }
+      };
+    }
+    if (lowerMsg.includes('studio')) {
+      return {
+        text: `You got it! Opening up the Label Studio for you. You can preview, tweak, and download all your barcodes there.`,
+        action: {
+          type: 'OPEN_STUDIO',
+          summary: 'Open Label Studio',
+          payload: {}
         }
       };
     }
@@ -356,7 +420,7 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
     const projName = projMatch ? projMatch.name : (projTarget || 'General Stock');
 
     return {
-      text: `I've prepared the addition for you!\n\n✨ **Assigned SKU**: \`${assignedSku}\` *(guaranteed DDLC- prefix)*\n• **Product**: ${prodName}\n• **Quantity**: ${qty} pcs\n• **Unit Cost**: ${formatINR(price)}\n• **Total Cost**: ${formatINR(qty * price)} (0% GST)\n• **Assigned Project**: ${projName}\n• **Storage Location**: Main Lab Bin\n\nPlease verify the summary and click **Confirm & Save to Firestore** below to persist this record: \n\n\`\`\`action\n{\n  "type": "ADD_PRODUCT",\n  "summary": "Add ${prodName} (${qty} pcs @ ${formatINR(price)})",\n  "payload": {\n    "name": "${prodName}",\n    "sku": "${assignedSku}",\n    "barcode": "${assignedSku}",\n    "category": "Microcontrollers",\n    "quantity": ${qty},\n    "unit": "pcs",\n    "unitPrice": ${price},\n    "gstPercent": 0,\n    "projectId": "${projTarget}",\n    "storageLocation": "Main Lab",\n    "notes": "Added via DDLC AI Assistant"\n  }\n}\n\`\`\``,
+      text: `I've prepared the addition for you!\n\n✨ **Assigned SKU**: \`${assignedSku}\`\n🏷️ **Barcode**: \`${assignedSku}\`\n• **Product**: ${prodName}\n• **Quantity**: ${qty} pcs\n• **Unit Cost**: ${formatINR(price)}\n• **Total Cost**: ${formatINR(qty * price)} (0% GST)\n• **Assigned Project**: ${projName}\n• **Storage Location**: Main Lab Bin\n\nPlease verify the summary and click **Confirm & Save to Firestore** below to persist this record: \n\n\`\`\`action\n{\n  "type": "ADD_PRODUCT",\n  "summary": "Add ${prodName} (${qty} pcs @ ${formatINR(price)})",\n  "payload": {\n    "name": "${prodName}",\n    "sku": "${assignedSku}",\n    "barcode": "${assignedSku}",\n    "category": "Microcontrollers",\n    "quantity": ${qty},\n    "unit": "pcs",\n    "unitPrice": ${price},\n    "gstPercent": 0,\n    "projectId": "${projTarget}",\n    "storageLocation": "Main Lab",\n    "notes": "Added via DDLC AI Assistant"\n  }\n}\n\`\`\``,
     };
   }
 
@@ -433,7 +497,6 @@ export async function handleAiParseItem(prompt: string, projectList: any[] = [])
   const candidateModels = [
     'gemini-3.8-flash',
     'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
   ];
 
   for (const modelName of candidateModels) {

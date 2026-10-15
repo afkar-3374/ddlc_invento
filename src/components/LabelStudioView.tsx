@@ -34,26 +34,30 @@ import {
   filterProductsBySkuRange,
 } from '../services/labelService';
 
-interface LabelStudioViewProps {
+  interface LabelStudioViewProps {
   initialProductId?: string;
   initialStartSku?: string;
   initialEndSku?: string;
+  initialProjectId?: string;
 }
 
 export const LabelStudioView: React.FC<LabelStudioViewProps> = ({
   initialProductId,
   initialStartSku,
   initialEndSku,
+  initialProjectId,
 }) => {
   const { products, projects } = useInventory();
 
   // Selection state
-  const [selectionMode, setSelectionMode] = useState<'range' | 'manual' | 'all'>('range');
+  const [selectionMode, setSelectionMode] = useState<'range' | 'manual' | 'all'>(
+    initialProductId || initialProjectId ? 'manual' : 'range'
+  );
   const [startSku, setStartSku] = useState(initialStartSku || '');
   const [endSku, setEndSku] = useState(initialEndSku || '');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  const [projectIdFilter, setProjectIdFilter] = useState('');
+  const [projectIdFilter, setProjectIdFilter] = useState(initialProjectId || '');
 
   // Design state
   const [selectedSize, setSelectedSize] = useState<LabelSizeOption>(LABEL_SIZES[0]);
@@ -88,7 +92,12 @@ export const LabelStudioView: React.FC<LabelStudioViewProps> = ({
       return matchedProducts;
     }
     // Manual selection
-    let filtered = products.filter((p) => selectedProductIds.has(p.id) && !p.archived);
+    let filtered = products.filter((p) => !p.archived);
+    
+    if (selectedProductIds.size > 0) {
+      filtered = filtered.filter(p => selectedProductIds.has(p.id));
+    }
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));

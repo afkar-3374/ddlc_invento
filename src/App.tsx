@@ -267,6 +267,15 @@ function AppContent() {
               onOpenScanner={() => setCurrentTab('scanner')}
             />
           )}
+
+          {/* 10. LABEL STUDIO */}
+          {currentTab === 'studio' && (
+            <LabelStudioView
+              initialProductId={labelsModalOptions?.productId}
+              initialStartSku={labelsModalOptions?.startSku}
+              initialEndSku={labelsModalOptions?.endSku}
+            />
+          )}
         </main>
       </div>
 

@@ -25,7 +25,9 @@ import {
   ChevronRight,
   ScanLine,
   Camera,
+  Layout,
 } from 'lucide-react';
+import Barcode from 'react-barcode';
 import { useInventory } from '../context/InventoryContext';
 import { Product, ProposedAction } from '../types';
 import { formatINR } from '../services/dbService';
@@ -296,6 +298,8 @@ What's on the workbench today?`,
         purchaseDate: payload.purchaseDate || new Date().toISOString().slice(0, 10),
         projectId: resolvedProjectId,
         storageLocation: payload.storageLocation || 'Main Lab',
+        sku: payload.sku,
+        barcode: payload.barcode,
         notes: payload.notes || '',
         archived: false,
       });
@@ -322,6 +326,8 @@ What's on the workbench today?`,
           purchaseDate: item.purchaseDate || new Date().toISOString().slice(0, 10),
           projectId: item.projectId || '',
           storageLocation: item.storageLocation || 'Main Lab',
+          sku: item.sku,
+          barcode: item.barcode,
           notes: item.notes || '',
           archived: false,
         });
@@ -363,6 +369,14 @@ What's on the workbench today?`,
       return `Added supplier **${createdV.name}** to the database.`;
     }
 
+    if (type === 'OPEN_STUDIO') {
+      if (onNavigateToStudio) {
+        onNavigateToStudio(payload);
+        return `I've opened the Label Studio for you. You can see the details there!`;
+      }
+      return `Label Studio is ready.`;
+    }
+
     return 'Action saved to Firestore.';
   };
 
@@ -395,6 +409,7 @@ What's on the workbench today?`,
           vendor: p.vendor,
           projectId: p.projectId,
           storageLocation: p.storageLocation,
+          barcode: p.barcode,
           archived: p.archived,
         })),
         projects: projects.map((pr) => ({
@@ -467,6 +482,7 @@ What's on the workbench today?`,
 
       const isExportOrViewAction =
         proposedAction?.type === 'GENERATE_LABELS' ||
+        proposedAction?.type === 'OPEN_STUDIO' ||
         proposedAction?.type === 'SHOW_PRODUCT_DETAILS';
 
       let autoExecutedSummary = '';
@@ -716,6 +732,26 @@ What's on the workbench today?`,
                       </div>
                     )}
 
+                    {/* 1c. Open Studio Action */}
+                    {m.action.type === 'OPEN_STUDIO' && (
+                      <div className="p-4 rounded-2xl bg-[#F0F9F2] border border-[#CDE3D2] space-y-2.5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#168653]">
+                          <Layout className="w-4 h-4" />
+                          <span>{m.action.summary || 'Label Studio'}</span>
+                        </div>
+                        <div className="text-[11px] text-[#77857C]">
+                          Design, preview, and download your barcode labels in the studio.
+                        </div>
+                        <button
+                          onClick={() => onNavigateToStudio?.(m.action!.payload)}
+                          className="w-full px-3.5 py-2 rounded-xl bg-[#168653] hover:bg-[#126b42] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                        >
+                          <Tag className="w-4 h-4" />
+                          <span>Open Label Studio</span>
+                        </button>
+                      </div>
+                    )}
+
                     {/* 2. Show Product Details Action */}
                     {m.action.type === 'SHOW_PRODUCT_DETAILS' && (() => {
                       const prod = products.find(
@@ -727,9 +763,14 @@ What's on the workbench today?`,
                         <div className="p-4 rounded-2xl bg-white border border-[#E6EDE7] space-y-2.5 shadow-2xs">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-[#168653] px-2 py-0.5 rounded-lg bg-[#E5F5E9] border border-[#CDE3D2]">
+                              <span className="text-xs font-mono font-bold text-[#168653] px-2 py-0.5 rounded-lg bg-[#E5F5E9] border border-[#CDE3D2]" title="SKU">
                                 {m.action.payload?.sku || prod?.sku}
                               </span>
+                              {(m.action.payload?.barcode || prod?.barcode) && (
+                                <span className="text-xs font-mono font-medium text-[#77857C] px-2 py-0.5 rounded-lg bg-[#F5F9F6] border border-[#E6EDE7]" title="Barcode">
+                                  {m.action.payload?.barcode || prod?.barcode}
+                                </span>
+                              )}
                               <span className="text-xs font-bold text-[#174D35] truncate max-w-[200px]">
                                 {prod?.name || 'Inventory Record'}
                               </span>
@@ -741,6 +782,19 @@ What's on the workbench today?`,
                             )}
                           </div>
 
+                          {(m.action.payload?.barcode || prod?.barcode) && (
+                            <div className="flex flex-col items-center justify-center p-3 bg-white border border-[#F0F5F2] rounded-xl">
+                              <Barcode 
+                                value={m.action.payload?.barcode || prod?.barcode || ''} 
+                                width={1.2}
+                                height={40}
+                                fontSize={10}
+                                margin={0}
+                                background="transparent"
+                              />
+                            </div>
+                          )}
+
                           {prod && (
                             <div className="grid grid-cols-2 gap-2 text-xs bg-[#F5F9F6] p-2.5 rounded-xl border border-[#E6EDE7]">
                               <div>Unit Cost: <span className="text-[#25352C] font-semibold">{formatINR(prod.unitPrice)}</span></div>
@@ -750,15 +804,27 @@ What's on the workbench today?`,
                             </div>
                           )}
 
-                          {prod && onOpenItemDetails && (
-                            <button
-                              onClick={() => onOpenItemDetails(prod)}
-                              className="px-3 py-1.5 rounded-xl bg-[#E5F5E9] hover:bg-[#d8eedd] text-[#168653] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                              <span>Open Full Record</span>
-                            </button>
-                          )}
+                          <div className="flex flex-wrap gap-2">
+                            {prod && onOpenItemDetails && (
+                              <button
+                                onClick={() => onOpenItemDetails(prod)}
+                                className="px-3 py-1.5 rounded-xl bg-[#E5F5E9] hover:bg-[#d8eedd] text-[#168653] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span>Full Record</span>
+                              </button>
+                            )}
+
+                            {onNavigateToStudio && (
+                              <button
+                                onClick={() => onNavigateToStudio({ productId: prod?.id, startSku: prod?.sku, endSku: prod?.sku })}
+                                className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <Tag className="w-3.5 h-3.5 text-[#168653]" />
+                                <span>Open in Studio</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       );
                     })()}
@@ -914,6 +980,22 @@ What's on the workbench today?`,
                               <div>
                                 <span className="text-[#77857C] block text-[10px]">PROJECT</span>
                                 <span className="text-[#168653] font-semibold">{m.action.payload?.projectId || 'Unassigned'}</span>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="text-[#77857C] block text-[10px]">BARCODE</span>
+                                <span className="text-[#25352C] font-mono mb-2 block">{m.action.payload?.barcode || m.action.payload?.sku || 'Auto-generated'}</span>
+                                {(m.action.payload?.barcode || m.action.payload?.sku) && (
+                                  <div className="flex justify-center p-2 bg-white rounded-lg border border-[#E6EDE7]">
+                                    <Barcode 
+                                      value={m.action.payload?.barcode || m.action.payload?.sku || 'DDLC-XXXX'} 
+                                      width={1}
+                                      height={30}
+                                      fontSize={8}
+                                      margin={0}
+                                      background="transparent"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             </div>
 

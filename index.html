@@ -96,15 +96,23 @@
           }
         }, true);
 
-        window.addEventListener('unhandledrejection', function(e) {
-          const reason = e && (e.reason || '');
-          const msg = (typeof reason === 'string') ? reason : ((reason.message || '') + ' ' + (reason.stack || ''));
-          if (shouldSuppress(msg)) {
-            e.stopImmediatePropagation();
-            if (e.preventDefault) e.preventDefault();
-            return true;
+        // Intercept any unhandled errors from @vite/client
+        const originalAddEventListener = window.addEventListener;
+        window.addEventListener = function(type, listener, options) {
+          if (type === 'error' || type === 'unhandledrejection') {
+            const wrappedListener = function(e) {
+              const msg = (e && (e.message || (e.reason && (e.reason.message || e.reason.stack)))) || '';
+              if (shouldSuppress(msg)) {
+                if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                if (e.preventDefault) e.preventDefault();
+                return;
+              }
+              return listener.apply(this, arguments);
+            };
+            return originalAddEventListener.call(window, type, wrappedListener, options);
           }
-        }, true);
+          return originalAddEventListener.call(window, type, listener, options);
+        };
       })();
 
       // Ensure trailing slash on GitHub Pages directory URLs so relative assets (./assets/...) resolve correctly

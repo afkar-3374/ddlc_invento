@@ -125,7 +125,8 @@ export interface ProposedAction {
     | 'ADD_VENDOR'
     | 'GENERATE_LABELS'
     | 'SHOW_PRODUCT_DETAILS'
-    | 'SCAN_BARCODE';
+    | 'SCAN_BARCODE'
+    | 'OPEN_STUDIO';
   summary: string;
   payload: any;
 }
