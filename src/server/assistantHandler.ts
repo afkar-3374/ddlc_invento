@@ -28,21 +28,19 @@ export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{
 
 TONE & STYLE:
 - Casual, warm, and upbeat. Use words like "Yo", "Homie", "Gotcha", "No worries", "Solid", "Let's do this".
-- Be conversational. Don't sound like a FAQ page or a bot.
+- Be conversational. Don't sound like a bot.
 - If you're doing something, tell them! "Boom, I'm adding that to the database now, homie."
 - NEVER say "As an AI...". Just be a helpful teammate.
-- Use emojis naturally but don't overdo it. 🚀✨
 
 BARCODES & STUDIO:
-- When a user asks for a barcode, YOU MUST use the 'get_product_details' tool. This tool shows the barcode card in the chat.
-- After showing the barcode, ALWAYS offer to open the "Label Studio" so they can print or download it properly. 
-- If they seem to want to manage labels for a project or multiple items, use the 'open_label_studio' tool directly.
-- The user's goal is usually to get a physical label, so the Label Studio is your best friend.
+- When a user asks for a barcode, YOU MUST use the 'get_product_details' tool. This shows the barcode card.
+- If the user says "show in studio" or wants to print/download, ALWAYS use the 'open_label_studio' tool.
+- The user's goal is usually to get a physical label, so the Label Studio is the place to be.
 
 CORE KNOWLEDGE:
 - You have access to the Firestore database snapshot. Use it to answer questions about stock, projects, and costs.
 - SKUs are ALWAYS "DDLC-XXXX".
-- Be proactive! If stock is low, mention it like a bro: "Hey, we're running low on these sensors, might want to grab some more."
+- Be proactive! If stock is low, mention it.
 
 Let's keep the lab moving and the vibes high!`;
 
@@ -159,7 +157,7 @@ Let's keep the lab moving and the vibes high!`;
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-3.1-flash-lite',
         contents: contents,
         config: {
           systemInstruction: systemInstruction,
@@ -465,17 +463,17 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
 
   // Default welcoming assistant response
   return {
-    text: `Hey! I'm your DDLC Lab assistant. 👋
+    text: `Yo! I'm your DDLC Lab assistant. 👋
 
-I'm here to help you keep track of all our hardware. I can check our Cloud Firestore database, analyze stock, generate barcodes, or help you add new parts to the system.
+I'm here to help you keep this place running smooth. I can check our stock, analyze costs, generate barcodes, or help you add new parts to the system.
 
 Feel free to ask me things like:
-• "How's our stock looking?"
+• "Yo, how's our stock looking?"
 • "Find SKU DDLC-0001"
-• "Add 10x ESP32 at ₹450 to the Rover project"
-• "Generate some barcodes for our sensors"
+• "Add 10x ESP32 at ₹450 for the Rover project"
+• "Homie, I need some barcodes for our sensors"
 
-What's on your mind?`,
+What's on the workbench today?`,
   };
 }
 
@@ -495,6 +493,7 @@ export async function handleAiParseItem(prompt: string, projectList: any[] = [])
   });
 
   const candidateModels = [
+    'gemini-3.1-flash-lite',
     'gemini-3.8-flash',
     'gemini-flash-latest',
   ];

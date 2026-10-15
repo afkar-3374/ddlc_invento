@@ -782,7 +782,7 @@ What's on the workbench today?`,
                             )}
                           </div>
 
-                          {(m.action.payload?.barcode || prod?.barcode) && (
+                          {(m.action.payload?.barcode || prod?.barcode) ? (
                             <div className="flex flex-col items-center justify-center p-3 bg-white border border-[#F0F5F2] rounded-xl">
                               <Barcode 
                                 value={m.action.payload?.barcode || prod?.barcode || ''} 
@@ -792,6 +792,10 @@ What's on the workbench today?`,
                                 margin={0}
                                 background="transparent"
                               />
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-700 font-medium">
+                              Barcode data unavailable for this item.
                             </div>
                           )}
 
