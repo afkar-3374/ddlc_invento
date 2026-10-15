@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Building2,
   Download,
+  Tag,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { usePWAInstall } from '../hooks/usePWAInstall';
@@ -25,6 +26,7 @@ export type NavTab =
   | 'settings'
   | 'scanner'
   | 'vendors'
+  | 'studio'
   | 'ai';
 
 interface SidebarProps {
@@ -108,6 +110,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'vendors',
       label: 'Suppliers & Vendors',
       icon: <Building2 className="w-4 h-4" />,
+    },
+    {
+      id: 'studio',
+      label: 'Label Studio',
+      icon: <Tag className="w-4 h-4" />,
     },
     {
       id: 'ai',

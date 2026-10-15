@@ -64,7 +64,10 @@
             str.indexOf('HMR') !== -1 ||
             str.indexOf('Illegal invocation') !== -1 ||
             str.indexOf('failed to connect') !== -1 ||
-            str.indexOf('closed without opened') !== -1
+            str.indexOf('closed without opened') !== -1 ||
+            str.indexOf('net::ERR_CONNECTION_REFUSED') !== -1 ||
+            str.indexOf('ws://') !== -1 ||
+            str.indexOf('wss://') !== -1
           );
         }
 

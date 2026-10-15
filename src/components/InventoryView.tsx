@@ -30,6 +30,7 @@ interface InventoryViewProps {
   onViewItemDetails: (product: Product) => void;
   onNavigateToAssistant?: (prompt: string) => void;
   onOpenLabels?: (product?: Product) => void;
+  onNavigateToStudio?: (options?: { productId?: string; startSku?: string; endSku?: string }) => void;
   onOpenScanner?: () => void;
 }
 
@@ -41,6 +42,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   onViewItemDetails,
   onNavigateToAssistant,
   onOpenLabels,
+  onNavigateToStudio,
   onOpenScanner,
 }) => {
   const {
@@ -260,14 +262,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </button>
           )}
 
-          {onOpenLabels && (
+          {(onOpenLabels || onNavigateToStudio) && (
             <button
-              onClick={() => onOpenLabels()}
+              onClick={() => {
+                if (onNavigateToStudio) {
+                  onNavigateToStudio();
+                } else if (onOpenLabels) {
+                  onOpenLabels();
+                }
+              }}
               className="px-3.5 py-2 rounded-xl text-xs font-semibold border border-[#E6EDE7] bg-white text-[#25352C] hover:bg-[#F5F9F6] transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Generate printable barcode labels"
+              title="Open Label Studio for design & print"
             >
               <Tag className="w-3.5 h-3.5 text-[#168653]" />
-              <span>Labels</span>
+              <span>Studio</span>
             </button>
           )}
 

@@ -96,8 +96,14 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
       }
     }
     loadCameras();
+    
+    // Automatically start camera if possible when mounted
+    const autoStartTimer = setTimeout(() => {
+      startCamera();
+    }, 500);
 
     return () => {
+      clearTimeout(autoStartTimer);
       stopCamera();
     };
   }, []);

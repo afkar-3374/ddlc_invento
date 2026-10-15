@@ -23,6 +23,8 @@ import {
   AlertCircle,
   HelpCircle,
   ChevronRight,
+  ScanLine,
+  Camera,
 } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { Product, ProposedAction } from '../types';
@@ -52,8 +54,15 @@ interface AiAssistantViewProps {
     productId?: string;
     projectId?: string;
   }) => void;
+  onNavigateToStudio?: (options?: {
+    startSku?: string;
+    endSku?: string;
+    productId?: string;
+    projectId?: string;
+  }) => void;
   isDrawer?: boolean;
   onClose?: () => void;
+  onOpenScanner?: () => void;
 }
 
 export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
@@ -61,8 +70,10 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
   onClearInitialPrompt,
   onOpenItemDetails,
   onOpenLabelsModal,
+  onNavigateToStudio,
   isDrawer = false,
   onClose,
+  onOpenScanner,
 }) => {
   const {
     products,
@@ -199,7 +210,13 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
     {
       id: 'welcome_1',
       role: 'model',
-      text: `Hello! I'm your **DDLC AI Assistant**.\n\nI keep track of all our electronic components, active hardware projects, and purchase orders in real-time. Currently we have **${products.length} Products**, **${projects.length} Projects**, and **${purchases.length} Purchase Orders** recorded in Cloud Firestore.\n\nYou can ask me for a complete inventory analysis, project cost breakdowns, or say *"Add 5 ESP32 at ₹450 to Rover"* and all assigned SKUs will strictly start with **DDLC-**! If any request is unclear, I'll ask follow-up questions to clarify. How can I help you today?`,
+      text: `Hey there! 👋 I'm your DDLC Lab assistant. Think of me as your extra pair of hands for keeping this place organized.
+
+Right now, I'm looking at our Cloud Firestore and I see we've got **${products.length} items** in stock across **${projects.length} projects**.
+
+I can help you with anything—from digging up specs on a specific SKU (just say "Find DDLC-0001") to calculating how much we've spent on a project. And if you've got new parts, just tell me "Add 10 ESP32s at ₹450" and I'll handle the paperwork for you!
+
+What's on the workbench today?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -488,7 +505,7 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
       const errorMsg: ChatMessage = {
         id: `msg_${Date.now() + 2}`,
         role: 'model',
-        text: `I'm ready! You can ask me to analyze inventory, say *"Add 5x ESP32 at ₹450"*, create projects, or generate barcodes. All generated SKUs strictly begin with \`DDLC-\`.`,
+        text: `Oops, looks like I hit a snag! No worries though. I'm still here to help you manage the lab. You can ask me to check stock, add new parts (like "Add 5x ESP32 at ₹450"), or generate some barcodes. What's next?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -666,9 +683,9 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
                             <span>{generatingPdf ? 'Generating PDF...' : 'Download Labels PDF'}</span>
                           </button>
 
-                          {onOpenLabelsModal && (
+                          {onNavigateToStudio && (
                             <button
-                              onClick={() => onOpenLabelsModal(m.action!.payload)}
+                              onClick={() => onNavigateToStudio(m.action!.payload)}
                               className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                             >
                               <ExternalLink className="w-3.5 h-3.5 text-[#168653]" />
@@ -676,6 +693,26 @@ export const AiAssistantView: React.FC<AiAssistantViewProps> = ({
                             </button>
                           )}
                         </div>
+                      </div>
+                    )}
+
+                    {/* 1b. Scan Barcode Action */}
+                    {m.action.type === 'SCAN_BARCODE' && (
+                      <div className="p-4 rounded-2xl bg-[#F0F9F2] border border-[#CDE3D2] space-y-2.5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#168653]">
+                          <ScanLine className="w-4 h-4" />
+                          <span>{m.action.summary || 'Live Scanner Ready'}</span>
+                        </div>
+                        <div className="text-[11px] text-[#77857C]">
+                          Ready to identify components via your device camera.
+                        </div>
+                        <button
+                          onClick={() => onOpenScanner?.()}
+                          className="w-full px-3.5 py-2 rounded-xl bg-[#168653] hover:bg-[#126b42] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                        >
+                          <Camera className="w-4 h-4" />
+                          <span>Launch Scanner Camera</span>
+                        </button>
                       </div>
                     )}
 

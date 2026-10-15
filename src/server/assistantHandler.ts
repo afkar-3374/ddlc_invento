@@ -24,25 +24,25 @@ export async function handleAssistantQuery(reqBody: AssistantRequest): Promise<{
     stockMovements: Array.isArray(databaseSnapshot?.stockMovements) ? databaseSnapshot.stockMovements : [],
   };
 
-  const systemInstruction = `You are a highly capable Hardware Assistant. 
-Your goal is to HELP the user manage their lab by PERFORMING TASKS directly from the chat.
-Talk like a natural, helpful colleague. Focus on getting things done.
+  const systemInstruction = `You're a super friendly, totally casual Lab Assistant for DDLC. Think of yourself as a helpful lab-mate who's part of the team, not just a bot.
+
+TONE & STYLE:
+- Be warm, upbeat, and very conversational.
+- Use natural expressions (e.g., "Hey there!", "Oh, for sure!", "I've got you covered!", "Let me check that for you...").
+- Keep the conversation flowing. Refer back to previous messages and keep things feeling like a continuous chat.
+- Don't be formal or robotic. Keep it chill and helpful!
 
 CORE PRINCIPLES:
-1. BE PROACTIVE: If the user wants to add or adjust something, use the tools immediately.
-2. BE ACCURATE: Use the database snapshot provided in your context to answer questions correctly.
-3. DDLC SKUs: All new products MUST have an SKU starting with "DDLC-". If not provided, generate one like "DDLC-XXXX".
+1. BE PROACTIVE: If someone says "Add 10 ESP32", don't just talk about it—actually trigger the 'add_product' tool immediately. 
+2. BE AN AGENT: When you use a tool, explain what you did in a friendly way (e.g., "Alright! I've officially added those 10 ESP32s to our Firestore records for the Rover project. What else can I help with?").
+3. SKUs: Always ensure new products get a proper SKU starting with "DDLC-".
+4. CONTEXT IS KEY: Use the database snapshot and chat history to give smart, contextual advice.
 
-When you perform an action, tell the user what you've done.`;
+Stay helpful, be a great teammate, and let's get this lab organized!`;
 
   if (apiKey) {
     const ai = new GoogleGenAI({
       apiKey: apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
     });
 
     const contents: any[] = [];
@@ -120,20 +120,20 @@ When you perform an action, tell the user what you've done.`;
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.0-flash-exp',
         contents: contents,
         config: {
           systemInstruction: systemInstruction,
           tools: [{ functionDeclarations: [addProductTool, adjustStockTool, createProjectTool, deleteProductTool] }],
-          temperature: 0.7,
+          temperature: 0.8,
         },
       });
 
-      const toolCalls = response.functionCalls;
       const text = response.text || '';
+      const toolCalls = response.functionCalls;
 
       if (toolCalls && toolCalls.length > 0) {
-        const actions = toolCalls.map(tc => {
+        const actions = toolCalls.map((tc: any) => {
           const args: any = tc.args || {};
           if (tc.name === 'add_product') {
             return {
@@ -238,7 +238,7 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
     }
   }
 
-  // 3. AMBIGUOUS LABEL REQUEST -> ASK FOLLOW-UP QUESTION!
+  // 3. AMBIGUOUS LABEL OR SCAN REQUEST -> ASK FOLLOW-UP QUESTION!
   if (
     lowerMsg === 'generate barcode labels' ||
     lowerMsg === 'generate labels' ||
@@ -246,8 +246,18 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
     lowerMsg === 'show barcodes' ||
     lowerMsg === 'print labels' ||
     lowerMsg === 'barcodes' ||
-    lowerMsg === 'labels'
+    lowerMsg === 'labels' ||
+    lowerMsg.includes('scan')
   ) {
+    if (lowerMsg.includes('scan')) {
+      return {
+        text: `Oh, you want to scan something? I can definitely help with that! I've got a live scanner ready to go. Just click the button below and your camera will spring to life!`,
+        action: {
+          type: 'SCAN_BARCODE',
+          summary: 'Open Live Barcode Scanner',
+        }
+      };
+    }
     return {
       text: `Sure! I can generate official Code 128 barcode labels for you right away. Which labels would you like to prepare?\n\n• **All inventory items** (${products.length} registered parts)\n• **A specific SKU range** (e.g., *"Generate labels from DDLC-0001 to DDLC-0010"*)\n• **Items from a particular project** (e.g., *"Generate labels for Beta 2"*)\n• **Selected products** (e.g., *"Generate barcode for ESP32"*)\n\nJust let me know your preference, or reply with *"All"* and I'll generate the complete sticker sheet!`,
     };
@@ -391,7 +401,17 @@ function handleAutonomousFallback(message: string, databaseSnapshot: any): { tex
 
   // Default welcoming assistant response
   return {
-    text: `Hello! I'm your **DDLC AI Assistant**.\n\nI can answer questions directly from our Cloud Firestore database, analyze hardware stock, generate real barcode labels, or help add items with guaranteed \`DDLC-\` SKUs.\n\nHere are some things you can ask:\n• *"Generate barcode labels"* *(I'll ask which parts you need)*\n• *"How much did Beta 2 cost?"* *(I'll break down PO spend vs stock value)*\n• *"Find SKU DDLC-0001"* *(Inspect real specs & stock)*\n• *"Add 10x ESP32 at ₹450 to Rover"* *(Instant confirmation card)*\n• *"Give detailed inventory analysis"*\n\nHow can I help you in the lab today?`,
+    text: `Hey! I'm your DDLC Lab assistant. 👋
+
+I'm here to help you keep track of all our hardware. I can check our Cloud Firestore database, analyze stock, generate barcodes, or help you add new parts to the system.
+
+Feel free to ask me things like:
+• "How's our stock looking?"
+• "Find SKU DDLC-0001"
+• "Add 10x ESP32 at ₹450 to the Rover project"
+• "Generate some barcodes for our sensors"
+
+What's on your mind?`,
   };
 }
 

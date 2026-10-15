@@ -32,6 +32,7 @@ import { ProjectModal } from './components/ProjectModal';
 import { StockAdjustModal } from './components/StockAdjustModal';
 import { ItemDetailsModal } from './components/ItemDetailsModal';
 import { AiAddItemModal } from './components/AiAddItemModal';
+import { LabelStudioView } from './components/LabelStudioView';
 import { PWAInstallModal } from './components/PWAInstallModal';
 import { Product, Project } from './types';
 
@@ -182,6 +183,10 @@ function AppContent() {
                 }
                 setIsLabelsModalOpen(true);
               }}
+              onNavigateToStudio={(opts) => {
+                setLabelsModalOptions(opts);
+                setCurrentTab('studio');
+              }}
               onOpenScanner={() => setCurrentTab('scanner')}
             />
           )}
@@ -255,6 +260,11 @@ function AppContent() {
                 setLabelsModalOptions(opts);
                 setIsLabelsModalOpen(true);
               }}
+              onNavigateToStudio={(opts) => {
+                setLabelsModalOptions(opts);
+                setCurrentTab('studio');
+              }}
+              onOpenScanner={() => setCurrentTab('scanner')}
             />
           )}
         </main>
@@ -437,6 +447,15 @@ function AppContent() {
               onOpenLabelsModal={(opts) => {
                 setLabelsModalOptions(opts);
                 setIsLabelsModalOpen(true);
+              }}
+              onNavigateToStudio={(opts) => {
+                setLabelsModalOptions(opts);
+                setCurrentTab('studio');
+                setIsAiDrawerOpen(false);
+              }}
+              onOpenScanner={() => {
+                setCurrentTab('scanner');
+                setIsAiDrawerOpen(false);
               }}
             />
           </div>

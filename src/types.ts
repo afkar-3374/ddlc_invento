@@ -124,7 +124,8 @@ export interface ProposedAction {
     | 'ADJUST_STOCK'
     | 'ADD_VENDOR'
     | 'GENERATE_LABELS'
-    | 'SHOW_PRODUCT_DETAILS';
+    | 'SHOW_PRODUCT_DETAILS'
+    | 'SCAN_BARCODE';
   summary: string;
   payload: any;
 }
