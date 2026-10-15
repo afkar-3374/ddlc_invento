@@ -21,12 +21,14 @@ import {
   Printer,
   Edit2,
   Receipt,
+  ShieldAlert,
 } from 'lucide-react';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { useInventory } from '../context/InventoryContext';
 import { Product } from '../types';
 import { formatINR } from '../services/dbService';
 import { generateBarcodeDataUrl, downloadSingleLabelPng } from '../services/labelService';
+import { CameraPermissionModal } from './CameraPermissionModal';
 
 interface BarcodeScannerViewProps {
   onOpenItemDetails?: (product: Product) => void;
@@ -53,6 +55,7 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannerInitializing, setScannerInitializing] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   // Manual input and scan result
   const [manualCode, setManualCode] = useState('');
@@ -150,24 +153,8 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
         return;
       }
 
-      // 2. First verify permissions status if query API is available
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const perm = await navigator.permissions.query({ name: 'camera' as any });
-          if (perm.state === 'denied') {
-            setCameraError(
-              'Camera permission is currently blocked in your browser settings. To use the live camera scanner, click the lock or camera icon in your browser address bar to allow DDLC AI camera access, or use the manual SKU / USB scanner below.'
-            );
-            setIsScanning(false);
-            setScannerInitializing(false);
-            return;
-          }
-        } catch {
-          // Permissions query optional / not supported for camera in all browsers
-        }
-      }
-
-      // 3. Stop existing tracks safely before requesting a new stream
+      // 2. Direct request via getUserMedia is more reliable than permissions.query in iframes
+      // Stop existing tracks safely before requesting a new stream
       stopCamera();
 
       // 4. Request camera stream with fallback constraints
@@ -251,8 +238,9 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
         errMsg.includes('not allowed') ||
         errMsg.includes('permission')
       ) {
+        setShowPermissionModal(true);
         setCameraError(
-          'Camera permission is blocked or was denied. To scan with your camera, allow camera access in your browser address bar (click the lock / tune icon 🔒), or simply type the SKU or use a handheld USB barcode scanner below.'
+          'Camera access was not granted. Please click "Allow Camera" below to try again.'
         );
       } else if (
         errName === 'NotFoundError' ||
@@ -261,7 +249,7 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
         errMsg.includes('no device')
       ) {
         setCameraError(
-          'No camera hardware detected on this device. You can type any SKU or scan via a USB barcode scanner in the box below.'
+          'No camera hardware detected on this device. Manual SKU lookup and USB scanners are ready.'
         );
       } else if (
         errName === 'NotReadableError' ||
@@ -269,7 +257,7 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
         errMsg.includes('already in use')
       ) {
         setCameraError(
-          'Camera is currently in use by another application or tab. Please close any other app using the camera and click Retry Camera.'
+          'Camera is in use by another application. Please close it and click Retry Camera.'
         );
       } else if (errName === 'OverconstrainedError') {
         setCameraError(
@@ -277,12 +265,12 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
         );
       } else if (errName === 'SecurityError') {
         setCameraError(
-          'Camera access blocked due to security settings or embedded frame restrictions. Manual SKU entry is ready.'
+          'Camera access blocked due to security settings or iframe restrictions.'
         );
       } else {
         setCameraError(
           err?.message ||
-            'Unable to start camera feed. Please check device permissions or use manual SKU / USB scanner input below.'
+            'Unable to start camera feed. Please check device permissions or use manual SKU / USB scanner input.'
         );
       }
       setIsScanning(false);
@@ -473,17 +461,30 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
                       Camera feed is currently stopped
                     </p>
                     <p className="text-[11px] text-[#77857C] mt-1">
-                      Click below to request camera permission and begin scanning.
+                      Click below to activate camera or manage permissions.
                     </p>
                   </div>
-                  <button
-                    onClick={startCamera}
-                    disabled={scannerInitializing}
-                    className="px-4 py-2 rounded-xl bg-[#E5F5E9] hover:bg-[#D4EED9] text-[#168653] text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>{scannerInitializing ? 'Initializing...' : 'Activate Camera'}</span>
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraError(null);
+                        startCamera();
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Allow Camera from App</span>
+                    </button>
+                    <button
+                      onClick={startCamera}
+                      disabled={scannerInitializing}
+                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F9F6] text-[#25352C] border border-[#E6EDE7] text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${scannerInitializing ? 'animate-spin' : ''}`} />
+                      <span>{scannerInitializing ? 'Initializing...' : 'Start Camera'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -503,42 +504,28 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white/80 rounded-xl p-2.5 border border-[#FFE8A3]/70 text-[11px] text-[#7A5B04] space-y-1">
-                  <div className="font-semibold flex items-center gap-1.5 text-[#6B4F00]">
-                    <span>💡 Quick Tip:</span>
-                  </div>
-                  <p>
-                    If permissions are blocked: Click the <strong>lock / site settings icon (🔒)</strong> on the left side of your browser address bar, set <strong>Camera</strong> to <strong>Allow</strong>, then click Retry.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 pt-1 border-t border-[#FFE8A3] flex-wrap">
+                <div className="flex items-center gap-2 pt-1 border-t border-[#FFE8A3] flex-wrap justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraError(null);
+                      startCamera();
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Allow Camera from App</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       manualInputRef.current?.focus();
                       manualInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    className="px-4 py-2 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
                   >
-                    <Keyboard className="w-3.5 h-3.5" />
-                    <span>Focus Manual / USB Scanner</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={startCamera}
-                    disabled={scannerInitializing}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#FFF9E6] text-[#6B4F00] border border-[#FFE8A3] text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${scannerInitializing ? 'animate-spin' : ''}`} />
-                    <span>{scannerInitializing ? 'Retrying...' : 'Retry Camera'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCameraError(null)}
-                    className="ml-auto px-2 py-1 text-xs text-[#997B28] hover:text-[#6B4F00] font-medium cursor-pointer"
-                  >
-                    Dismiss
+                    <Keyboard className="w-4 h-4" />
+                    <span>Use Manual SKU Input</span>
                   </button>
                 </div>
               </div>
@@ -903,6 +890,21 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Camera Permission Popup Modal */}
+      <CameraPermissionModal
+        isOpen={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        onPermissionGranted={() => {
+          setCameraError(null);
+          startCamera();
+        }}
+        onUseManualInput={() => {
+          manualInputRef.current?.focus();
+          manualInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+        initialError={cameraError}
+      />
     </div>
   );
 };

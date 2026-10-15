@@ -20,25 +20,68 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
-      // Suppress Vite HMR WebSocket closed notices in iframe/container environment
+      // Suppress Vite HMR WebSocket closed notices and platform-specific mock errors
       (function() {
-        var _origError = console.error;
-        console.error = function() {
-          for (var i = 0; i < arguments.length; i++) {
-            var arg = arguments[i];
-            if (
-              (typeof arg === 'string' && arg.indexOf('WebSocket closed without opened') !== -1) ||
-              (arg && arg.message && typeof arg.message === 'string' && arg.message.indexOf('WebSocket closed without opened') !== -1)
-            ) {
-              return;
-            }
+        // Mock WebSocket to prevent even trying to connect if it's hitting the vite client
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          if (typeof url === 'string' && (url.includes('vite') || url.includes('hmr'))) {
+            console.log('Intercepted Vite WebSocket connection attempt to:', url);
+            return {
+              addEventListener: function() {},
+              removeEventListener: function() {},
+              send: function() {},
+              close: function() {},
+              readyState: 3, // CLOSED
+            };
           }
+          return new OriginalWebSocket(url, protocols);
+        };
+        // Ensure the prototype is kept for 'instanceof' checks if any
+        window.WebSocket.prototype = OriginalWebSocket.prototype;
+
+        var _origError = console.error;
+        var _origWarn = console.warn;
+        
+        function shouldSuppress(arg) {
+          if (!arg) return false;
+          var str = (typeof arg === 'string') ? arg : ((arg.message || '') + ' ' + (arg.stack || ''));
+          return (
+            str.indexOf('WebSocket closed without opened') !== -1 ||
+            str.indexOf('failed to connect to websocket') !== -1 ||
+            str.indexOf('vite-hmr') !== -1 ||
+            str.indexOf('MockViteWebSocket') !== -1 ||
+            str.indexOf('Illegal invocation') !== -1 ||
+            str.indexOf('WebSocket connection to') !== -1
+          );
+        }
+
+        console.error = function() {
+          if (Array.from(arguments).some(shouldSuppress)) return;
           return _origError.apply(console, arguments);
         };
+
+        console.warn = function() {
+          if (Array.from(arguments).some(shouldSuppress)) return;
+          return _origWarn.apply(console, arguments);
+        };
+
         window.addEventListener('error', function(e) {
-          if (e && e.message && e.message.indexOf('WebSocket closed without opened') !== -1) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
+          var msg = (e && (e.message || (e.error && (e.error.message || e.error.stack)))) || '';
+          if (shouldSuppress(msg)) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          var reason = e && (e.reason || '');
+          var msg = (typeof reason === 'string') ? reason : ((reason.message || '') + ' ' + (reason.stack || ''));
+          if (shouldSuppress(msg)) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            return true;
           }
         }, true);
       })();

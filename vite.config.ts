@@ -59,7 +59,7 @@ export default defineConfig(() => {
       },
     },
     server: {
-      // HMR is disabled in AI Studio container environment
+      // HMR and overlay are disabled in AI Studio container environment
       hmr: false,
       watch: null,
     },

@@ -22,11 +22,13 @@ import {
   VolumeX,
   Keyboard,
   Barcode as BarcodeIcon,
+  ShieldAlert,
 } from 'lucide-react';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { Product, Project, Purchase, StockMovement } from '../types';
 import { formatINR } from '../services/dbService';
 import { downloadSingleLabelPng } from '../services/labelService';
+import { CameraPermissionModal } from './CameraPermissionModal';
 
 interface AlwaysReadyScannerProps {
   products: Product[];
@@ -58,6 +60,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   // Scan input & results
   const [manualInput, setManualInput] = useState('');
@@ -155,24 +158,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
         return;
       }
 
-      // 2. Check permission query if available
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const perm = await navigator.permissions.query({ name: 'camera' as any });
-          if (perm.state === 'denied') {
-            setCameraError(
-              'Camera permission blocked in browser. Click the lock / settings icon 🔒 in the URL bar to allow camera access, or use the USB / manual input below.'
-            );
-            setIsScanning(false);
-            setScannerInitializing(false);
-            isInitializingRef.current = false;
-            return;
-          }
-        } catch {
-          // Non-critical
-        }
-      }
-
+      // 2. Direct request via getUserMedia is more reliable than permissions.query in iframes
       // Stop previous instance if active
       stopCameraStream();
 
@@ -272,8 +258,9 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
         errMsg.includes('permission') ||
         errMsg.includes('not allowed')
       ) {
+        setShowPermissionModal(true);
         setCameraError(
-          'Camera access was denied or blocked. You can allow camera in browser site settings (lock icon 🔒), or immediately scan via USB barcode reader / manual SKU below.'
+          'Camera access was not granted. Please click "Allow Camera" below to try again.'
         );
       } else if (
         errName === 'NotFoundError' ||
@@ -281,7 +268,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
         errMsg.includes('not found')
       ) {
         setCameraError(
-          'No camera device detected on this system. USB barcode scanners and manual SKU lookup are ready.'
+          'No camera device detected on this system. Manual SKU lookup and USB scanners are ready.'
         );
       } else if (
         errName === 'NotReadableError' ||
@@ -289,11 +276,11 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
         errMsg.includes('already in use')
       ) {
         setCameraError(
-          'Camera is in use by another application. Please close it and click Retry Camera Feed.'
+          'Camera is in use by another application. Please close it and click Retry Camera.'
         );
       } else {
         setCameraError(
-          'Camera initialization paused. You can use the manual SKU / USB scanner below or click Retry Camera Feed.'
+          'Camera initialization failed. You can use manual SKU entry or click Retry Camera.'
         );
       }
       setIsScanning(false);
@@ -552,13 +539,19 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
                   </p>
                 </div>
                 {!scannerInitializing && (
-                  <button
-                    onClick={() => startCameraStream()}
-                    className="px-3 py-1.5 rounded-xl bg-[#E5F5E9] hover:bg-[#d8eedd] text-[#168653] text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>Retry Camera Feed</span>
-                  </button>
+                  <div className="flex items-center gap-2 justify-center flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraError(null);
+                        startCameraStream();
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>Allow Camera from App</span>
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -869,6 +862,21 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
           )}
         </div>
       </div>
+
+      {/* Camera Permission Popup Modal */}
+      <CameraPermissionModal
+        isOpen={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        onPermissionGranted={() => {
+          setCameraError(null);
+          startCameraStream();
+        }}
+        onUseManualInput={() => {
+          manualInputRef.current?.focus();
+          manualInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+        initialError={cameraError}
+      />
     </div>
   );
 };
