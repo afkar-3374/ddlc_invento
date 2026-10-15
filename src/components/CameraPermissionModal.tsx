@@ -39,28 +39,22 @@ export const CameraPermissionModal: React.FC<CameraPermissionModalProps> = ({
         throw new Error('Camera hardware/API is not supported by this browser.');
       }
 
-      // Explicitly trigger getUserMedia on this click event so browser prompts the user
-      // We use a very simple constraint first to maximize prompt success
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
-      } catch (err: any) {
-        // If it fails, check if it's a specific hardware error or a permission error
-        const name = err?.name || '';
-        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          throw new Error('Camera access is currently blocked. Please click the button to try again.');
-        }
-        throw err;
-      }
+      // 1. Direct call to getUserMedia to trigger the browser's native permission dialog
+      // We request only video, no audio, to keep it simple
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }, 
+        audio: false 
+      }).catch(() => {
+        // Fallback for desktop or non-back-camera devices
+        return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      });
 
       if (!stream) {
-        throw new Error('No video stream received from camera.');
+        throw new Error('Camera access was not granted or no stream available.');
       }
 
-      // Stop tracks immediately so scanner component can attach cleanly
+      // 2. If we got here, permission is granted! 
+      // Stop the test stream tracks immediately so the scanner can use them
       stream.getTracks().forEach((track) => track.stop());
 
       setIsRequesting(false);
@@ -71,18 +65,12 @@ export const CameraPermissionModal: React.FC<CameraPermissionModalProps> = ({
       const name = err?.name || '';
       const msg = (err?.message || '').toLowerCase();
 
-      if (
-        name === 'NotAllowedError' ||
-        name === 'PermissionDeniedError' ||
-        msg.includes('denied') ||
-        msg.includes('not allowed') ||
-        msg.includes('permission')
-      ) {
-        setErrorMessage(err.message || 'Camera access was not granted. Please allow access in the browser prompt or site settings.');
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || msg.includes('denied')) {
+        setErrorMessage('Camera access was denied. Please allow camera access in your browser settings for this site.');
       } else if (name === 'NotFoundError' || msg.includes('not found')) {
-        setErrorMessage('No camera hardware detected on this device.');
+        setErrorMessage('No camera was found on this device.');
       } else {
-        setErrorMessage(err?.message || 'Unable to start camera.');
+        setErrorMessage(err?.message || 'Could not access the camera.');
       }
     }
   };

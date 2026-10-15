@@ -22,6 +22,7 @@ import {
   Edit2,
   Receipt,
   ShieldAlert,
+  X,
 } from 'lucide-react';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { useInventory } from '../context/InventoryContext';
@@ -155,32 +156,16 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
       // Stop existing tracks safely before requesting a new stream
       stopCamera();
 
-      // 4. Request camera stream with fallback constraints
+      // 4. Request camera stream with minimal constraints first to ensure prompt success
       let stream: MediaStream | null = null;
       try {
-        const videoConstraints: MediaTrackConstraints = selectedCameraId
-          ? { deviceId: { exact: selectedCameraId } }
-          : { facingMode: { ideal: 'environment' } };
-
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: videoConstraints,
-          audio: false,
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' }, 
+          audio: false 
         });
       } catch (firstErr: any) {
-        // Fallback: If deviceId exact constraint failed (e.g. device disconnected or OverconstrainedError), try simple video: true
-        if (selectedCameraId) {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: 'environment' },
-              audio: false,
-            });
-          } catch {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          }
-        } else {
-          // Fallback to basic video constraint
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        }
+        // Fallback: If environment facing failed, try simple video: true
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
       if (!stream) {
@@ -319,6 +304,11 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
     });
 
     setMatchedProduct(found || null);
+
+    // Add haptic feedback (vibration) if supported by device
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(200);
+    }
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -597,7 +587,7 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
 
         {/* Right Column: Scan Result & Complete Inventory Details Panel */}
         <div className="lg:col-span-7">
-          {/* Case 1: Initial state (No scan attempted yet) */}
+          {/* Initial state (No scan attempted yet) placeholder */}
           {!lookupAttempted && (
             <div className="h-full min-h-[400px] bg-white border border-dashed border-[#E6EDE7] rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-3 shadow-xs">
               <div className="w-14 h-14 rounded-2xl bg-[#E5F5E9] flex items-center justify-center text-[#168653]">
@@ -616,273 +606,188 @@ export const BarcodeScannerView: React.FC<BarcodeScannerViewProps> = ({
             </div>
           )}
 
-          {/* Case 2: Scanned code not found in Firestore */}
-          {lookupAttempted && !matchedProduct && (
-            <div className="bg-white border border-red-200 rounded-3xl p-6 space-y-4 shadow-xs">
-              <div className="flex items-start justify-between pb-3 border-b border-[#F0F5F2]">
-                <div className="flex items-center gap-2 text-red-600 text-xs font-semibold">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span className="font-bold uppercase tracking-wider">NO MATCH FOUND</span>
-                </div>
-                <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
-                  CODE: {scannedCode}
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-[#25352C]">
-                  No registered product matched identifier "{scannedCode}"
-                </h3>
-                <p className="text-xs text-[#77857C] leading-relaxed">
-                  The barcode or SKU was looked up against all registered items in Cloud Firestore, but no exact record matches this value.
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-[#F0F5F2] flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => {
-                    setScannedCode(null);
-                    setLookupAttempted(false);
-                    setManualCode('');
-                    if (manualInputRef.current) manualInputRef.current.focus();
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-[#F5F9F6] hover:bg-[#E5F5E9] border border-[#E6EDE7] text-xs font-semibold text-[#25352C] transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-[#168653]" />
-                  <span>Retry Search</span>
-                </button>
-
-                {onOpenAddItemWithSku && scannedCode && (
-                  <button
-                    onClick={() => onOpenAddItemWithSku(scannedCode)}
-                    className="px-4 py-2 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Register New Item with SKU "{scannedCode}"</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Case 3: Matched product found */}
-          {lookupAttempted && matchedProduct && (
-            <div className="bg-white border border-[#C6E7D2] rounded-3xl p-6 space-y-5 shadow-xs">
-              {/* Top Banner with SKU and Status */}
-              <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-[#F0F5F2]">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#E5F5E9] text-[#168653] border border-[#C6E7D2] flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {matchedProduct.sku}
-                    </span>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#F5F9F6] text-[#25352C] border border-[#E6EDE7]">
-                      {matchedProduct.category || 'General'}
-                    </span>
-                    {matchedProduct.barcode && (
-                      <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">
-                        BARCODE: {matchedProduct.barcode}
-                      </span>
-                    )}
-                    {matchedProduct.archived && (
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                        ARCHIVED
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-bold text-[#174D35]">
-                    {matchedProduct.name}
-                  </h3>
-                  {(matchedProduct.brand || matchedProduct.model) && (
-                    <div className="text-xs text-[#77857C] mt-0.5">
-                      Brand: <span className="text-[#25352C] font-semibold">{matchedProduct.brand || 'Not recorded'}</span> • Model: <span className="text-[#25352C] font-semibold">{matchedProduct.model || 'Not recorded'}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Primary Open Full Record Button */}
-                <div className="flex items-center gap-2">
-                  {onOpenItemDetails && (
-                    <button
-                      onClick={() => onOpenItemDetails(matchedProduct)}
-                      className="px-3.5 py-2 rounded-xl bg-[#168653] hover:bg-[#126E43] text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                      title="Open full interactive inventory details dialog"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Open Full Record</span>
-                    </button>
-                  )}
-                  {onOpenEditItem && (
-                    <button
-                      onClick={() => onOpenEditItem(matchedProduct)}
-                      className="p-2 rounded-xl bg-[#F5F9F6] hover:bg-[#E5F5E9] border border-[#E6EDE7] text-[#77857C] hover:text-[#174D35] transition-all cursor-pointer"
-                      title="Edit Item"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Cost & Valuation Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F5F9F6] p-3.5 rounded-2xl border border-[#E6EDE7] text-xs">
-                <div>
-                  <span className="text-[10px] text-[#77857C] block uppercase font-semibold">Current Stock</span>
-                  <span className="text-base font-bold text-[#174D35]">
-                    {matchedProduct.quantity}{' '}
-                    <span className="text-xs text-[#77857C] font-normal">
-                      {matchedProduct.unit || 'pcs'}
-                    </span>
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-[#77857C] block uppercase font-semibold">Unit Cost</span>
-                  <span className="text-base font-bold text-[#174D35]">
-                    {formatINR(matchedProduct.unitPrice)}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-[#77857C] block uppercase font-semibold">Stock Valuation</span>
-                  <span className="text-base font-bold text-[#168653]">
-                    {formatINR(currentStockValuation)}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-[#77857C] block uppercase font-semibold">Total PO Value</span>
-                  <span className="text-base font-bold text-[#0284C7]">
-                    {formatINR(totalPurchaseExpenditure || matchedProduct.totalCost || currentStockValuation)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Comprehensive Attribute Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                {/* Storage Location */}
-                <div className="p-3 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] flex items-center gap-2.5">
-                  <MapPin className="w-4 h-4 text-[#168653] shrink-0" />
-                  <div>
-                    <span className="text-[10px] font-semibold text-[#77857C] block">STORAGE LOCATION</span>
-                    <span className="text-[#25352C] font-semibold">
-                      {matchedProduct.storageLocation || 'Not recorded'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Project Assignment */}
-                <div className="p-3 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] flex items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <FolderGit2 className="w-4 h-4 text-[#168653] shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-semibold text-[#77857C] block">PROJECT ASSIGNMENT</span>
-                      <span className="text-[#25352C] font-semibold truncate block">
-                        {allocatedProject
-                          ? `${allocatedProject.name} (${allocatedProject.code})`
-                          : matchedProduct.projectId || 'Unassigned / General'}
-                      </span>
-                    </div>
-                  </div>
-                  {allocatedProject && onNavigateToProjects && (
-                    <button
-                      onClick={() => onNavigateToProjects(allocatedProject.id)}
-                      className="text-[11px] text-[#168653] hover:underline shrink-0 font-semibold cursor-pointer"
-                    >
-                      View Project
-                    </button>
-                  )}
-                </div>
-
-                {/* Vendor / Supplier */}
-                <div className="p-3 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7]">
-                  <span className="text-[10px] font-semibold text-[#77857C] block">VENDOR / SUPPLIER</span>
-                  <span className="text-[#25352C] font-semibold">
-                    {matchedProduct.vendor || 'Not recorded'}
-                  </span>
-                </div>
-
-                {/* Purchase Date */}
-                <div className="p-3 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7]">
-                  <span className="text-[10px] font-semibold text-[#77857C] block">PURCHASE DATE</span>
-                  <span className="text-[#25352C] font-semibold">
-                    {matchedProduct.purchaseDate || 'Not recorded'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Description & Technical Specifications */}
-              {matchedProduct.description && (
-                <div className="p-3.5 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs">
-                  <span className="text-[10px] font-semibold text-[#77857C] block mb-1">
-                    SPECIFICATIONS & TECHNICAL DESCRIPTION
-                  </span>
-                  <p className="text-[#25352C] leading-relaxed">{matchedProduct.description}</p>
-                </div>
-              )}
-
-              {/* Purchase History Section */}
-              <div className="space-y-2 pt-2 border-t border-[#F0F5F2]">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#174D35] font-semibold flex items-center gap-1.5">
-                    <Receipt className="w-3.5 h-3.5 text-[#168653]" />
-                    Purchase History ({productPurchases.length})
-                  </span>
-                  {onNavigateToPurchases && productPurchases.length > 0 && (
-                    <button
-                      onClick={onNavigateToPurchases}
-                      className="text-[#168653] hover:underline text-xs font-semibold cursor-pointer"
-                    >
-                      View All Purchases
-                    </button>
-                  )}
-                </div>
-
-                {productPurchases.length === 0 ? (
-                  <div className="p-3 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#77857C] text-center">
-                    No dedicated purchase order entries linked.
-                  </div>
-                ) : (
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                    {productPurchases.map((po) => (
-                      <div
-                        key={po.id}
-                        className="p-2.5 rounded-xl bg-[#F5F9F6] border border-[#E6EDE7] flex items-center justify-between text-xs"
-                      >
-                        <div>
-                          <span className="text-[#174D35] font-bold">{po.purchaseNumber}</span>
-                          <span className="text-[#77857C] text-[10px] ml-2">{po.purchaseDate}</span>
-                          <div className="text-[10px] text-[#77857C]">{po.vendorNameSnapshot} • Qty: {po.quantity}</div>
+          {/* ========================================================= */}
+          {/* CUTE POPUP CARD FOR SCAN RESULTS                          */}
+          {/* ========================================================= */}
+          {lookupAttempted && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#174D35]/25 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="relative w-full max-w-lg bg-white rounded-[40px] shadow-[0_30px_60px_rgba(0,0,0,0.2)] border border-white overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+                {/* Visual Header */}
+                <div className="h-3 bg-gradient-to-r from-[#168653] via-[#4ADE80] to-[#168653]" />
+                
+                <div className="p-7 sm:p-10 space-y-7">
+                  {matchedProduct ? (
+                    /* MATCH FOUND */
+                    <>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-5">
+                          <div className="w-16 h-16 rounded-3xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center shadow-inner shrink-0 rotate-3">
+                            <CheckCircle2 className="w-10 h-10" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] bg-[#168653] px-3 py-1 rounded-full shadow-sm">
+                                DISCOVERED!
+                              </span>
+                            </div>
+                            <h3 className="text-2xl sm:text-3xl font-black text-[#174D35] leading-tight mt-2">
+                              {matchedProduct.name}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="font-mono text-sm font-black text-[#54655B] bg-[#F5F9F6] px-3 py-1 rounded-xl border border-[#E6EDE7]">
+                                {matchedProduct.sku}
+                              </span>
+                              <span className="text-xs px-3 py-1 rounded-xl bg-[#F5F9F6] text-[#25352C] border border-[#E6EDE7] font-bold">
+                                {matchedProduct.category || 'General'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-[#168653] font-bold">{formatINR(po.invoiceTotal)}</span>
-                          <div className="text-[10px] text-[#77857C] uppercase">{po.paymentStatus}</div>
+                        <button
+                          onClick={() => setLookupAttempted(false)}
+                          className="w-12 h-12 rounded-2xl bg-[#F5F9F6] text-[#77857C] flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer active:scale-90 shadow-xs border border-[#E6EDE7]"
+                        >
+                          <X className="w-6 h-6" />
+                        </button>
+                      </div>
+
+                      {/* Highlight Stats */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-[#F0F9F2] p-5 rounded-[32px] border-2 border-[#CDE3D2] relative overflow-hidden group">
+                          <div className="absolute -right-3 -bottom-3 opacity-10 text-[#168653] group-hover:rotate-12 transition-transform duration-500">
+                            <Package className="w-20 h-20" />
+                          </div>
+                          <span className="text-[11px] text-[#54655B] font-black uppercase tracking-widest block">STOCK ON HAND</span>
+                          <span className="text-3xl font-black text-[#174D35] mt-2 block">
+                            {matchedProduct.quantity} <small className="text-sm font-bold opacity-70">{matchedProduct.unit || 'pcs'}</small>
+                          </span>
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className={`h-2.5 w-2.5 rounded-full ${matchedProduct.quantity <= 5 ? 'bg-amber-500 animate-pulse' : 'bg-[#168653]'}`} />
+                            <span className="text-[10px] font-black text-[#174D35]/60 uppercase tracking-wider">
+                              {matchedProduct.quantity <= 5 ? 'Restock Soon' : 'Levels Healthy'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F5F9F6] p-5 rounded-[32px] border-2 border-[#E6EDE7] relative overflow-hidden group">
+                          <div className="absolute -right-3 -bottom-3 opacity-10 text-[#174D35] group-hover:rotate-12 transition-transform duration-500">
+                            <Tag className="w-20 h-20" />
+                          </div>
+                          <span className="text-[11px] text-[#54655B] font-black uppercase tracking-widest block">UNIT VALUE</span>
+                          <span className="text-3xl font-black text-[#174D35] mt-2 block">
+                            {formatINR(matchedProduct.unitPrice)}
+                          </span>
+                          <span className="text-[10px] font-black text-[#174D35]/60 uppercase tracking-wider block mt-2">
+                            Market Rate
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
-              {/* Bottom Quick Label Actions */}
-              <div className="pt-3 border-t border-[#F0F5F2] flex flex-wrap items-center justify-between gap-2.5">
-                <button
-                  onClick={() => downloadSingleLabelPng(matchedProduct)}
-                  className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-xs font-semibold text-[#25352C] transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <Printer className="w-3.5 h-3.5 text-[#168653]" />
-                  <span>Download Single Label (PNG)</span>
-                </button>
+                      {/* Detail Cards */}
+                      <div className="bg-white p-6 rounded-[32px] border-2 border-dashed border-[#CDE3D2] grid grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-6 h-6 rounded-lg bg-[#E5F5E9] text-[#168653] flex items-center justify-center">
+                              <MapPin className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[10px] text-[#77857C] font-black uppercase tracking-widest">Location</span>
+                          </div>
+                          <span className="text-sm font-black text-[#174D35] ml-8 block">
+                            {matchedProduct.storageLocation || 'Main Lab'}
+                          </span>
+                        </div>
 
-                {onOpenLabelsForProduct && (
-                  <button
-                    onClick={() => onOpenLabelsForProduct(matchedProduct)}
-                    className="px-3.5 py-2 rounded-xl bg-[#E5F5E9] hover:bg-[#D4EED9] text-[#168653] text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Tag className="w-3.5 h-3.5" />
-                    <span>Generate Batch Labels PDF</span>
-                  </button>
-                )}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-6 h-6 rounded-lg bg-[#E5F5E9] text-[#168653] flex items-center justify-center">
+                              <FolderGit2 className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-[10px] text-[#77857C] font-black uppercase tracking-widest">Project</span>
+                          </div>
+                          <span className="text-sm font-black text-[#174D35] ml-8 block truncate">
+                            {allocatedProject ? allocatedProject.name : 'General Inventory'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <button
+                          onClick={() => {
+                            onOpenItemDetails?.(matchedProduct);
+                            setLookupAttempted(false);
+                          }}
+                          className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-[#168653] text-white text-sm font-black hover:bg-[#126b42] transition-all shadow-lg active:scale-95 shadow-[#168653]/20"
+                        >
+                          <ExternalLink className="w-5 h-5" />
+                          <span>FULL RECORD</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            onOpenEditItem?.(matchedProduct);
+                            setLookupAttempted(false);
+                          }}
+                          className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white border-2 border-[#E6EDE7] text-[#174D35] text-sm font-black hover:bg-[#F5F9F6] transition-all active:scale-95"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                          <span>EDIT INFO</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            onOpenLabelsForProduct?.(matchedProduct);
+                            setLookupAttempted(false);
+                          }}
+                          className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white border-2 border-[#E6EDE7] text-[#174D35] text-sm font-black hover:bg-[#F5F9F6] transition-all active:scale-95"
+                        >
+                          <Printer className="w-5 h-5" />
+                          <span>PRINT LABEL</span>
+                        </button>
+                        <button
+                          onClick={() => setLookupAttempted(false)}
+                          className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-[#F5F9F6] text-[#77857C] text-sm font-black hover:bg-[#E5F5E9] hover:text-[#174D35] transition-all active:scale-95"
+                        >
+                          <ScanLine className="w-5 h-5" />
+                          <span>NEW SCAN</span>
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    /* NOT FOUND */
+                    <div className="text-center py-8 space-y-8">
+                      <div className="w-24 h-24 rounded-[40px] bg-red-50 text-red-500 flex items-center justify-center mx-auto shadow-inner border-2 border-white rotate-6">
+                        <ShieldAlert className="w-12 h-12" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-3xl font-black text-red-900 leading-tight tracking-tight">
+                          Item Not Found
+                        </h3>
+                        <p className="text-[#54655B] text-base font-bold max-w-xs mx-auto">
+                          identifier <code className="bg-red-100 px-2 py-1 rounded-lg text-red-900 border border-red-200">{scannedCode}</code> is not in our system.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <button
+                          onClick={() => {
+                            onOpenAddItemWithSku?.(scannedCode || '');
+                            setLookupAttempted(false);
+                          }}
+                          className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-[24px] bg-[#168653] text-white text-base font-black hover:bg-[#126b42] transition-all shadow-xl active:scale-95 shadow-[#168653]/30"
+                        >
+                          <Plus className="w-6 h-6" />
+                          <span>REGISTER NEW PRODUCT</span>
+                        </button>
+                        <button
+                          onClick={() => setLookupAttempted(false)}
+                          className="w-full flex items-center justify-center gap-3 px-6 py-5 rounded-[24px] bg-white border-2 border-[#E6EDE7] text-[#174D35] text-base font-black hover:bg-[#F5F9F6] transition-all active:scale-95"
+                        >
+                          <span>CONTINUE SCANNING</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

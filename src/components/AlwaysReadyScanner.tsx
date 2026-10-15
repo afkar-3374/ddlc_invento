@@ -163,27 +163,13 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
       // Configure video constraints preferring rear/environment camera on phones
       let stream: MediaStream | null = null;
       try {
-        const constraints: MediaStreamConstraints = {
-          video: deviceIdToUse
-            ? { deviceId: { exact: deviceIdToUse } }
-            : {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-              },
-          audio: false,
-        };
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' }, 
+          audio: false 
+        });
       } catch (firstErr: any) {
-        // Fallback: If deviceId exact constraint failed, try basic facingMode or simple video
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
-            audio: false,
-          });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        }
+        // Fallback: If environment facing failed, try simple video: true
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
       if (!stream) {
@@ -336,6 +322,11 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
     });
 
     setMatchedProduct(found || null);
+    
+    // Add haptic feedback (vibration) if supported by device
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(200);
+    }
   };
 
   // USB Scanner & manual input handler
@@ -609,247 +600,7 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
             </div>
           </form>
 
-          {/* ========================================================= */}
-          {/* SCAN RESULT PANEL                                        */}
-          {/* ========================================================= */}
-          {lookupAttempted && (
-            <div className="animate-in fade-in zoom-in-98 duration-150">
-              {matchedProduct ? (
-                /* MATCH FOUND IN FIRESTORE */
-                <div className="bg-[#F0F9F2] border-2 border-[#168653] rounded-3xl p-4 sm:p-5 shadow-xs space-y-4">
-                  {/* Result Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#CDE3D2]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-[#168653] text-white flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-[#168653]">
-                            Exact Match Found
-                          </span>
-                          {scanTimestamp && (
-                            <span className="text-[10px] text-[#77857C]">
-                              at {scanTimestamp}
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-base sm:text-lg font-extrabold text-[#174D35] leading-tight">
-                          {matchedProduct.name}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 self-start sm:self-auto">
-                      <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-xl bg-white text-[#174D35] border border-[#CDE3D2] shadow-2xs">
-                        {matchedProduct.sku}
-                      </span>
-                      <button
-                        onClick={handleDismissResult}
-                        className="p-1 rounded-lg text-[#77857C] hover:text-[#25352C] hover:bg-white"
-                        title="Dismiss result"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Comprehensive Specifications Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                    <div className="bg-white p-2.5 rounded-2xl border border-[#E6EDE7]">
-                      <span className="text-[10px] text-[#77857C] font-semibold block uppercase">
-                        Current Stock
-                      </span>
-                      <span className="text-sm font-bold text-[#174D35] mt-0.5 block">
-                        {matchedProduct.quantity} {matchedProduct.unit || 'pcs'}
-                      </span>
-                      <span className="text-[10px] text-[#168653] font-medium">
-                        {matchedProduct.quantity <= 5 ? '⚠️ Low stock' : 'Optimal level'}
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-2xl border border-[#E6EDE7]">
-                      <span className="text-[10px] text-[#77857C] font-semibold block uppercase">
-                        Unit Purchase Cost
-                      </span>
-                      <span className="text-sm font-bold text-[#174D35] mt-0.5 block">
-                        {formatINR(matchedProduct.unitPrice)}
-                      </span>
-                      <span className="text-[10px] text-[#77857C]">Per piece cost</span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-2xl border border-[#E6EDE7]">
-                      <span className="text-[10px] text-[#77857C] font-semibold block uppercase">
-                        Stock Valuation
-                      </span>
-                      <span className="text-sm font-bold text-[#168653] mt-0.5 block">
-                        {formatINR(matchedProduct.quantity * matchedProduct.unitPrice)}
-                      </span>
-                      <span className="text-[10px] text-[#77857C]">On-hand value</span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-2xl border border-[#E6EDE7]">
-                      <span className="text-[10px] text-[#77857C] font-semibold block uppercase">
-                        Category
-                      </span>
-                      <span className="text-sm font-bold text-[#174D35] mt-0.5 block truncate">
-                        {matchedProduct.category || 'General'}
-                      </span>
-                      <span className="text-[10px] text-[#77857C]">Classification</span>
-                    </div>
-                  </div>
-
-                  {/* Extended Hardware Details Row */}
-                  <div className="bg-white p-3 rounded-2xl border border-[#E6EDE7] text-xs space-y-1.5">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-[#77857C] text-[10px] block font-semibold">
-                          ASSIGNED PROJECT:
-                        </span>
-                        <span className="text-[#174D35] font-semibold">
-                          {matchedProduct.projectId ? projectMap.get(matchedProduct.projectId) || 'Assigned' : 'Not recorded'}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-[#77857C] text-[10px] block font-semibold">
-                          STORAGE LOCATION:
-                        </span>
-                        <span className="text-[#25352C] font-medium">
-                          {matchedProduct.storageLocation || 'Not recorded'}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-[#77857C] text-[10px] block font-semibold">
-                          VERIFIED SUPPLIER:
-                        </span>
-                        <span className="text-[#25352C] font-medium">
-                          {matchedProduct.vendor || 'Not recorded'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {matchedProduct.description && (
-                      <div className="pt-2 border-t border-[#F0F5F2] text-[11px] text-[#77857C]">
-                        <strong className="text-[#25352C]">Specs:</strong> {matchedProduct.description}
-                      </div>
-                    )}
-
-                    <div className="pt-2 border-t border-[#F0F5F2] flex items-center justify-between text-[11px] text-[#77857C]">
-                      <span>
-                        History: {productPurchases.length} POs • {productMovements.length} Stock logs
-                      </span>
-                      {matchedProduct.barcode && (
-                        <span className="font-mono text-[10px]">
-                          Barcode: {matchedProduct.barcode}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Immediate Actions Strip */}
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <button
-                      onClick={() => onViewItemDetails(matchedProduct)}
-                      className="px-3.5 py-2 rounded-xl bg-[#168653] hover:bg-[#126b42] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>View Full Details</span>
-                    </button>
-
-                    <button
-                      onClick={() => onEditItem(matchedProduct)}
-                      className="px-3 py-2 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 text-[#168653]" />
-                      <span>Edit Item</span>
-                    </button>
-
-                    <button
-                      onClick={() => onAdjustStock(matchedProduct)}
-                      className="px-3 py-2 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-[#168653]" />
-                      <span>Adjust Stock</span>
-                    </button>
-
-                    <button
-                      onClick={() => onOpenLabelsForProduct(matchedProduct)}
-                      className="px-3 py-2 rounded-xl bg-white hover:bg-[#F5F9F6] border border-[#E6EDE7] text-[#25352C] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Tag className="w-3.5 h-3.5 text-[#168653]" />
-                      <span>Print Label</span>
-                    </button>
-
-                    <button
-                      onClick={handleDismissResult}
-                      className="ml-auto px-3 py-2 rounded-xl bg-white/70 hover:bg-white text-[#77857C] hover:text-[#25352C] text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      Dismiss / Next Scan
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* UNKNOWN / NOT FOUND STATE */
-                <div className="bg-[#FFFDF8] border-2 border-amber-300 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                        <AlertCircle className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm sm:text-base font-bold text-amber-900">
-                          Item not found in inventory
-                        </h4>
-                        <p className="text-xs text-amber-800 mt-0.5">
-                          No matching record was found for barcode:{' '}
-                          <code className="font-bold font-mono bg-white px-2 py-0.5 rounded-lg border border-amber-200">
-                            {scannedCode}
-                          </code>
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleDismissResult}
-                      className="p-1 rounded-lg text-amber-700 hover:text-amber-900"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200/60">
-                    <button
-                      onClick={() => onOpenAddItemWithSku(scannedCode || '')}
-                      className="px-3.5 py-2 rounded-xl bg-[#168653] hover:bg-[#126b42] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Register New Item with SKU "{scannedCode}"</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        handleDismissResult();
-                        manualInputRef.current?.focus();
-                      }}
-                      className="px-3 py-2 rounded-xl bg-white border border-amber-200 text-amber-900 text-xs font-semibold hover:bg-amber-50 transition-colors cursor-pointer"
-                    >
-                      Enter SKU manually
-                    </button>
-
-                    <button
-                      onClick={handleDismissResult}
-                      className="px-3 py-2 rounded-xl text-amber-800 text-xs font-semibold hover:text-amber-900 cursor-pointer"
-                    >
-                      Retry scanning
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
+          {/* Scanner stand-by message - only show if no active scan result */}
           {!lookupAttempted && (
             <div className="p-3.5 rounded-2xl bg-[#F5F9F6] border border-[#E6EDE7] text-xs text-[#77857C] flex items-center gap-2.5">
               <ScanLine className="w-4 h-4 text-[#168653] shrink-0" />
@@ -860,6 +611,198 @@ export const AlwaysReadyScanner: React.FC<AlwaysReadyScannerProps> = ({
           )}
         </div>
       </div>
+
+      {/* ========================================================= */}
+      {/* CUTE POPUP CARD FOR SCAN RESULTS                          */}
+      {/* ========================================================= */}
+      {lookupAttempted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#174D35]/20 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+            {/* Top Decorative Header */}
+            <div className="h-2 bg-gradient-to-r from-[#168653] via-[#4ADE80] to-[#168653]" />
+            
+            <div className="p-6 sm:p-8 space-y-6">
+              {matchedProduct ? (
+                /* MATCH FOUND */
+                <>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-[#E5F5E9] text-[#168653] flex items-center justify-center shadow-inner shrink-0">
+                        <CheckCircle2 className="w-8 h-8" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-[#168653] uppercase tracking-widest bg-[#168653]/10 px-2 py-0.5 rounded-full">
+                            Found It!
+                          </span>
+                          {scanTimestamp && (
+                            <span className="text-[11px] text-[#77857C] font-medium italic">
+                              at {scanTimestamp}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-xl sm:text-2xl font-black text-[#174D35] leading-tight mt-1">
+                          {matchedProduct.name}
+                        </h3>
+                        <p className="font-mono text-sm font-bold text-[#54655B] bg-[#F5F9F6] inline-block px-3 py-1 rounded-lg mt-2 border border-[#E6EDE7]">
+                          {matchedProduct.sku}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDismissResult}
+                      className="w-10 h-10 rounded-full bg-[#F5F9F6] text-[#77857C] flex items-center justify-center hover:bg-[#E5F5E9] hover:text-[#174D35] transition-all cursor-pointer active:scale-90 shadow-xs"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Cute Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[#F0F9F2] p-4 rounded-3xl border border-[#CDE3D2] relative overflow-hidden group">
+                      <div className="absolute -right-2 -bottom-2 opacity-5 text-[#168653] group-hover:scale-110 transition-transform">
+                        <Layers className="w-16 h-16" />
+                      </div>
+                      <span className="text-[10px] text-[#54655B] font-black uppercase tracking-wider block">
+                        In Stock
+                      </span>
+                      <span className="text-2xl font-black text-[#174D35] mt-1 block">
+                        {matchedProduct.quantity} <small className="text-sm font-bold">{matchedProduct.unit || 'pcs'}</small>
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className={`w-2 h-2 rounded-full ${matchedProduct.quantity <= 5 ? 'bg-amber-500 animate-pulse' : 'bg-[#168653]'}`} />
+                        <span className={`text-[10px] font-bold ${matchedProduct.quantity <= 5 ? 'text-amber-700' : 'text-[#168653]'}`}>
+                          {matchedProduct.quantity <= 5 ? 'Time to reorder!' : 'Inventory Good'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F5F9F6] p-4 rounded-3xl border border-[#E6EDE7] relative overflow-hidden group">
+                      <div className="absolute -right-2 -bottom-2 opacity-5 text-[#174D35] group-hover:scale-110 transition-transform">
+                        <Tag className="w-16 h-16" />
+                      </div>
+                      <span className="text-[10px] text-[#54655B] font-black uppercase tracking-wider block">
+                        Value
+                      </span>
+                      <span className="text-2xl font-black text-[#174D35] mt-1 block">
+                        {formatINR(matchedProduct.unitPrice)}
+                      </span>
+                      <span className="text-[10px] text-[#77857C] font-bold">Per unit cost</span>
+                    </div>
+                  </div>
+
+                  {/* Details Sheet */}
+                  <div className="bg-white p-5 rounded-3xl border-2 border-dashed border-[#CDE3D2] space-y-4">
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-xs">
+                      <div className="flex items-start gap-2.5">
+                        <Building2 className="w-4 h-4 text-[#168653] shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-[10px] text-[#77857C] font-black uppercase block">Location</span>
+                          <span className="text-[#174D35] font-bold">{matchedProduct.storageLocation || 'Unassigned'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <FolderGit2 className="w-4 h-4 text-[#168653] shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-[10px] text-[#77857C] font-black uppercase block">Project</span>
+                          <span className="text-[#174D35] font-bold truncate block max-w-[120px]">
+                            {matchedProduct.projectId ? projectMap.get(matchedProduct.projectId) || 'Project' : 'General Lab'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {matchedProduct.description && (
+                      <div className="pt-3 border-t border-[#F0F5F2]">
+                        <span className="text-[10px] text-[#77857C] font-black uppercase block mb-1">Specifications</span>
+                        <p className="text-xs text-[#25352C] leading-relaxed font-medium">
+                          {matchedProduct.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions Grid */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      onClick={() => {
+                        onViewItemDetails(matchedProduct);
+                        handleDismissResult();
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-[#168653] text-white text-xs font-black hover:bg-[#126b42] transition-all shadow-md active:scale-95"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>OPEN DETAILS</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        onAdjustStock(matchedProduct);
+                        handleDismissResult();
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white border-2 border-[#E6EDE7] text-[#174D35] text-xs font-black hover:bg-[#F5F9F6] transition-all active:scale-95"
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      <span>ADJUST STOCK</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        onEditItem(matchedProduct);
+                        handleDismissResult();
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white border-2 border-[#E6EDE7] text-[#174D35] text-xs font-black hover:bg-[#F5F9F6] transition-all active:scale-95"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      <span>EDIT INFO</span>
+                    </button>
+                    <button
+                      onClick={handleDismissResult}
+                      className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-[#F5F9F6] text-[#77857C] text-xs font-black hover:bg-[#E5F5E9] hover:text-[#174D35] transition-all active:scale-95"
+                    >
+                      <ScanLine className="w-4 h-4" />
+                      <span>NEXT SCAN</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* NOT FOUND */
+                <div className="text-center py-6 space-y-6">
+                  <div className="w-20 h-20 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto shadow-inner border-2 border-white">
+                    <ShieldAlert className="w-10 h-10" />
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-2xl font-black text-amber-900 leading-tight">
+                      Unknown Barcode
+                    </h3>
+                    <p className="text-[#54655B] text-sm font-medium mt-2 max-w-xs mx-auto">
+                      We couldn't find any record matching <code className="font-black bg-amber-100 px-2 py-0.5 rounded-md text-amber-900 border border-amber-200">{scannedCode}</code>
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-4">
+                    <button
+                      onClick={() => {
+                        onOpenAddItemWithSku(scannedCode || '');
+                        handleDismissResult();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl bg-[#168653] text-white text-sm font-black hover:bg-[#126b42] transition-all shadow-lg active:scale-95"
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span>REGISTER AS NEW ITEM</span>
+                    </button>
+                    <button
+                      onClick={handleDismissResult}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl bg-white border-2 border-[#E6EDE7] text-[#174D35] text-sm font-black hover:bg-[#F5F9F6] transition-all active:scale-95"
+                    >
+                      <span>TRY ANOTHER SCAN</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Camera Permission Popup Modal */}
       <CameraPermissionModal
